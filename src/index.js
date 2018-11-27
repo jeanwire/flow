@@ -74,6 +74,13 @@ class Board extends React.Component {
         nextColor: this.state.squares[i][j]
       })
     }
+    else if (this.state.squares[i][j] !== 'white') {
+      let squares = this.state.squares.slice(0);
+      squares[i][j] = 'white';
+      this.setState({
+        squares: squares
+      })
+    }
     else {
       let squares = this.state.squares.slice(0);
       squares[i][j] = this.state.nextColor;
