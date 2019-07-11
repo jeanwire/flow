@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import 'json-loader';
-import gameBoard from './game_ex.json';
 import './index.css';
 
 
@@ -48,7 +47,7 @@ class Board extends React.Component {
     );
   }
 
-  buildBoard = () => {
+  buildBoard() {
     let board = [];
 
     for (let i = 0; i < 5; i++) {
@@ -98,11 +97,24 @@ class Board extends React.Component {
 }
 
 class GameImport extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      isLoaded: false,
+      colors: [],
+      ends: []
+    }
+  }
+
+  componentDidMount() {
+    fetch("http://127.0.0.1:5000/play")
+      .then(res => res.json())
+      .then(result => this.getBoard(result))
+  }
 
   getBoard(input) {
-    let colors = [];
-    let ends = [];
-
+    let colors = this.state.colors;
+    let ends = this.state.ends;
     for (let i = 0; i < input.board.length; i++) {
       let thisRow = input.board[i];
       // allows for boards of different shapes and sizes
@@ -138,21 +150,27 @@ class GameImport extends React.Component {
         }
       }
     }
-    return ({
+    this.setState({
+      isLoaded: true,
       colors: colors,
       ends: ends
     })
   }
 
   render() {
-    return (
-      <Board
-        colors={this.getBoard(gameBoard).colors}
-        ends={this.getBoard(gameBoard).ends}
-      />
-    )
+    if (!this.state.isLoaded) {
+      return (
+        <div className="game-info">"Loading"</div>
+      )
+    } else {
+      return (
+        <Board
+          colors={this.state.colors}
+          ends={this.state.ends}
+        />
+      )
+    }
   }
-
 }
 
 ReactDOM.render(

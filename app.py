@@ -1,14 +1,21 @@
-from flask import Flask, json, Response
+from flask import Flask, json, Response, redirect
+from flask_cors import CORS
 import os
+
 app = Flask(__name__)
+CORS(app)
 
 @app.route('/')
 def index():
     return '<h1>Hello World!</h1>'
 
-@app.route('/user/<name>')
+@app.route('/users/<name>')
 def user(name):
     return '<h1>Hello, {}!</h1>'.format(name)
+
+@app.route('/play')
+def choose_game():
+    return redirect('/game/1')
 
 @app.route('/game/<num>')
 def game(num):
@@ -16,8 +23,6 @@ def game(num):
     full_path = os.path.join(app.root_path, 'game_boards', file_name);
     data = open(full_path)
     return Response(data, mimetype='application/json');
-
-# app.add_url_rule('/user/<name>', 'user', user)
 
 
 if __name__ == "__main__":
