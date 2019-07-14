@@ -40,6 +40,7 @@ class Board extends React.Component {
   renderSquare(i, j) {
     return (
       <Square
+        key={(i.toString() + j.toString())}
         color={this.state.squares[i][j]}
         ifEnd={this.ends[i][j]}
         onClick={() => this.handleClick(i, j)}
@@ -55,7 +56,9 @@ class Board extends React.Component {
       for (let j = 0; j < 5; j++) {
         children.push(this.renderSquare(i, j));
       }
-      board.push(<div className="board-row">
+      board.push(<div
+                  className="board-row"
+                  key={i.toString()}>
                   {children}
                  </div>)
     }
