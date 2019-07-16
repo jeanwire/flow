@@ -51,9 +51,9 @@ class Board extends React.Component {
   buildBoard() {
     let board = [];
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < this.state.squares.length; i++) {
       let children = [];
-      for (let j = 0; j < 5; j++) {
+      for (let j = 0; j < this.state.squares.length; j++) {
         children.push(this.renderSquare(i, j));
       }
       board.push(<div
