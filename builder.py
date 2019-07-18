@@ -13,10 +13,13 @@ def main():
         mino = copy.deepcopy(select_mino(minos_dict))
         print(mino)
 
-        if (len(mino[0]) < board.size):
-            inserted = board.insert(mino)
+        temp_board = None
 
-    print(board.game)
+        if (len(mino[0]) <= board.size):
+            temp_board, inserted = board.insert(mino)
+
+    board = copy.deepcopy(temp_board)
+    print(board)
 
     # insert mino(s) in board
     # build lines around mino(s)
@@ -29,7 +32,7 @@ class Board(object):
         self.size = size
         self.game = []
         for i in range(size):
-            self.game.append([None, None, None, None, None])
+            self.game.append([None] * size)
         self.visited = {}
         for i in range(size):
             for j in range(size):
@@ -45,6 +48,7 @@ class Board(object):
         color = self.unused_colors.pop()
         temp, valid = self.mino_in_board(mino, row, col, color)
 
+
         if (not valid and row + 1 < self.size - len(mino)):
             temp, valid = self.mino_in_board(mino, row + 1, col, color)
         elif (not valid and col + 1 < self.size - len(mino[0])):
@@ -53,14 +57,14 @@ class Board(object):
             temp, valid = self.mino_in_board(mino, row - 1, col, color)
         elif (not valid and col - 1 >= 0):
             temp, valid = self.mino_in_board(mino, row, col - 1, color)
-        return valid
+        return (temp, valid)
 
 
     def mino_in_board(self, mino, row, col, color):
-        mino_row = 0
-        mino_col = 0
         temp = copy.deepcopy(self.game)
         temp_visited = []
+
+        mino_row = 0
         for i in range(row, row + len(mino)):
             mino_col = 0
             for j in range(col, col + len(mino[0])):
@@ -71,6 +75,9 @@ class Board(object):
             mino_row += 1
 
         valid = self.validate_board(temp, temp_visited)
+        if (valid):
+            for sq in temp_visited:
+                self.visited[sq] = True
         return (temp, valid)
 
 
@@ -137,18 +144,6 @@ class Board(object):
             self.bfs(board, children, cluster)
 
 
-
-class Node(object):
-    def __init__(self, value, x, y):
-        self.value = value
-        self.x = x
-        self.y = y
-        self.left = None
-        self.right = None
-        self.up = None
-        self.down = None
-
-
 def import_minos():
     with open('minos.json') as minos_file:
         json_data = json.load(minos_file)
@@ -159,7 +154,6 @@ def select_mino(minos_dict):
     mino_size = random.randint(3, 6)
     minos = minos_dict[str(mino_size)]
     mino = minos[random.randint(0, len(minos) - 1)]
-    mino = minos_dict[str(3)][0]
     return mino
 
 
