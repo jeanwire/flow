@@ -13,15 +13,13 @@ def main():
         mino = copy.deepcopy(select_mino(minos_dict))
         print(mino)
 
-        temp_board = None
-
         if (len(mino[0]) <= board.size):
-            temp_board, inserted = board.insert(mino)
+            temp_board, inserted, mino_loc = board.insert(mino)
 
-    board = copy.deepcopy(temp_board)
-    print(board)
+    board.game = copy.deepcopy(temp_board)
+    print('game: ', board.game)
 
-    # insert mino(s) in board
+    board.onion(mino_loc, (len(mino), len(mino[0])))
     # build lines around mino(s)
     # validate board, repeat adding lines if necessary
     # when board is completed, write to file in json format
@@ -57,7 +55,7 @@ class Board(object):
             temp, valid = self.mino_in_board(mino, row - 1, col, color)
         elif (not valid and col - 1 >= 0):
             temp, valid = self.mino_in_board(mino, row, col - 1, color)
-        return (temp, valid)
+        return (temp, valid, (row, col))
 
 
     def mino_in_board(self, mino, row, col, color):
@@ -81,14 +79,52 @@ class Board(object):
         return (temp, valid)
 
 
+    def onion(self, mino_loc, mino_size):
+        end1 = None
+        end2 = None
+        path = []
+
+        for i in range(mino_loc[0], mino_loc[0] + mino_size[0]):
+            for j in range(mino_loc[1], mino_loc[1] + mino_size[1]):
+                if (self.game[i][j] and len(self.game[i][j]) == 2):
+                    if not end1:
+                        end1 = (i, j)
+                    else:
+                        end2 = (i, j)
+
+        # look around the endpoints
+        print('end1: ', end1)
+        print('end2: ', end2)
+        neighbors = self.find_neighbors(end1, self.game) + self.find_neighbors(end2, self.game)
+
+        line_end = None
+        # if any of them have only one neighbor, put that in the path
+        for neighbor in neighbors:
+            n = self.find_neighbors(neighbor, self.game)
+            if len(n) == 1:
+                line_end = neighbor
+                break;
+        # if none of them has only 1 neighbor, put the path on the edge
+        if not line_end:
+            for neighbor in neighbors:
+                if neighbor[0] == 0 or neighbor[0] == self.size - 1 or neighbor[1] == 0 or neighbor[1] == self.size - 1:
+                    line_end = neighbor
+                    break;
+
+        if not line_end:
+            line_end = neighbor[0]
+        # there is always the potential that the endpoints have no neighbors later in the process
+        # will need to look around the mino instead
+
+        print('line_end: ' line_end)
+
+
     def validate_board(self, board, visited):
         clusters = []
         checked = visited.copy()
         first_sq = None
 
         while(len(checked) < self.size * self.size):
-
-
             # need to do this in one loop so we can break out of it
             for i in range(self.size * self.size):
                 try:
@@ -97,7 +133,6 @@ class Board(object):
                     first_sq = (i // 5, i % 5)
                     break;
 
-            print("first sq", first_sq)
             cluster = [first_sq]
             self.bfs(board, cluster, cluster)
             if cluster:
@@ -142,6 +177,20 @@ class Board(object):
 
         if (len(children)):
             self.bfs(board, children, cluster)
+
+
+    def find_neighbors(self, point, board):
+        neighbors = []
+        if (point[0] != 0 and not board[point[0] - 1][point[1]]):
+            neighbors.append((point[0] - 1, point[1]))
+        if (point[0] != self.size - 1 and not board[point[0] + 1][point[1]]):
+            neighbors.append((point[0] + 1, point[1]))
+        if (point[1] != 0 and not board[point[0]][point[1] - 1]):
+            neighbors.append((point[0], point[1] - 1))
+        if (point[1] != self.size - 1 and not board[point[0]][point[1] + 1]):
+            neighbors.append((point[0], point[1] + 1))
+
+        return neighbors
 
 
 def import_minos():
