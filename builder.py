@@ -17,9 +17,10 @@ def main():
             temp_board, inserted, mino_loc = board.insert(mino)
 
     board.game = copy.deepcopy(temp_board)
-    print('game: ', board.game)
+    for line in board.game:
+        print(line)
 
-    board.onion(mino_loc, (len(mino), len(mino[0])))
+    board.onion()
     # build lines around mino(s)
     # validate board, repeat adding lines if necessary
     # when board is completed, write to file in json format
@@ -79,48 +80,31 @@ class Board(object):
         return (temp, valid)
 
 
-    def onion(self, mino_loc, mino_size):
-        end1 = None
-        end2 = None
+    def onion(self):
+        board = copy.deepcopy(self.game)
+        one_neighbor = set()
+        endpoints = set()
+        color = self.unused_colors.pop()
+        # path needs to be lsit to support ordering
         path = []
+        # build up sets of points with 1 neighbor and endpoints
+        # these data are used to find where to draw the next line
+        for i in range(self.size):
+            for j in range(self.size):
+                if not board[i][j]:
+                    neighbors = self.find_neighbors((i, j), board)
+                    if len(neighbors) == 1:
+                        one_neighbor.add((i, j))
+                elif len(board[i][j]) == 2:
+                    endpoints.add((i, j))
 
-        for i in range(mino_loc[0], mino_loc[0] + mino_size[0]):
-            for j in range(mino_loc[1], mino_loc[1] + mino_size[1]):
-                if (self.game[i][j] and len(self.game[i][j]) == 2):
-                    if not end1:
-                        end1 = (i, j)
-                    else:
-                        end2 = (i, j)
-
-        # look around the endpoints
-        print('end1: ', end1)
-        print('end2: ', end2)
-        neighbors = self.find_neighbors(end1, self.game) + self.find_neighbors(end2, self.game)
-
-        line_end = None
-        # if any of them have only one neighbor, put that in the path
-        for neighbor in neighbors:
-            n = self.find_neighbors(neighbor, self.game)
-            if len(n) == 1:
-                line_end = neighbor
-                break;
-        # if none of them has only 1 neighbor, put the path on the edge
-        if not line_end:
-            for neighbor in neighbors:
-                if neighbor[0] == 0 or neighbor[0] == self.size - 1 or neighbor[1] == 0 or neighbor[1] == self.size - 1:
-                    line_end = neighbor
-                    break;
-
-        if not line_end:
-            line_end = neighbor[0]
-        # there is always the potential that the endpoints have no neighbors later in the process
-        # will need to look around the mino instead
-
-        print('line_end: ' line_end)
+        if one_neighbor:
+            pass
 
 
     def validate_board(self, board, visited):
         clusters = []
+
         checked = visited.copy()
         first_sq = None
 
@@ -133,16 +117,20 @@ class Board(object):
                     first_sq = (i // 5, i % 5)
                     break;
 
+            print(first_sq)
             cluster = [first_sq]
             self.bfs(board, cluster, cluster)
             if cluster:
                 clusters.append(cluster)
                 checked += cluster
+                print('cluster: ', cluster)
+                print('checked: ', checked)
             # reset this value
             first_sq = None
 
         for cluster in clusters:
-            if len(cluster) < 2:
+            print('checking cluster: ', cluster)
+            if len(cluster) <= 2:
                 return False
 
         return True
@@ -156,7 +144,7 @@ class Board(object):
                 except ValueError:
                     children.append((sq[0] - 1, sq[1]))
                     cluster.append((sq[0] - 1, sq[1]))
-            if (sq[0] != self.size - 1 and not board[sq[0 + 1]][sq[1]]):
+            if (sq[0] != self.size - 1 and not board[sq[0] + 1][sq[1]]):
                 try:
                     cluster.index((sq[0] + 1, sq[1]))
                 except ValueError:
@@ -180,17 +168,30 @@ class Board(object):
 
 
     def find_neighbors(self, point, board):
-        neighbors = []
-        if (point[0] != 0 and not board[point[0] - 1][point[1]]):
-            neighbors.append((point[0] - 1, point[1]))
-        if (point[0] != self.size - 1 and not board[point[0] + 1][point[1]]):
-            neighbors.append((point[0] + 1, point[1]))
-        if (point[1] != 0 and not board[point[0]][point[1] - 1]):
-            neighbors.append((point[0], point[1] - 1))
-        if (point[1] != self.size - 1 and not board[point[0]][point[1] + 1]):
-            neighbors.append((point[0], point[1] + 1))
+        empty_neighbors = []
+        filled_neighbors = []
+        if point[0] != 0:
+            if not board[point[0] - 1][point[1]]):
+                empty_neighbors.append((point[0] - 1, point[1]))
+            else:
+                filled_neighbors.append((point[0] - 1, point[1]))
+        if (point[0] != self.size - 1):
+            if not board[point[0] + 1][point[1]]:
+                empty_neighbors.append((point[0] + 1, point[1]))
+            else:
+                filled_neighbors.append((point[0] + 1, point[1]))
+        if (point[1] != 0):
+            if not board[point[0]][point[1] - 1]:
+                empty_neighbors.append((point[0], point[1] - 1))
+            else:
+                filled_neighbors.append((point[0], point[1] - 1))
+        if (point[1] != self.size - 1):
+            if not board[point[0]][point[1] + 1]:
+                empty_neighbors.append((point[0], point[1] + 1))
+            else:
+                filled_neighbors.append((point[0], point[1] + 1))
 
-        return neighbors
+        return empty_neighbors, filled_neighbors
 
 
 def import_minos():
