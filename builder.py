@@ -20,7 +20,9 @@ def main():
     for line in board.game:
         print(line)
 
-    board.onion()
+    board.game = copy.deepcopy(board.onion())
+    for line in board.game:
+        print(line)
     # build lines around mino(s)
     # validate board, repeat adding lines if necessary
     # when board is completed, write to file in json format
@@ -81,25 +83,69 @@ class Board(object):
 
 
     def onion(self):
+        """Draws a line that traces along the lines present in the board"""
+
         board = copy.deepcopy(self.game)
         one_neighbor = set()
         endpoints = set()
         color = self.unused_colors.pop()
-        # path needs to be lsit to support ordering
-        path = []
+        path = set()
         # build up sets of points with 1 neighbor and endpoints
         # these data are used to find where to draw the next line
         for i in range(self.size):
             for j in range(self.size):
                 if not board[i][j]:
-                    neighbors = self.find_neighbors((i, j), board)
+                    neighbors = self.ortho_neighbors((i, j), board)
                     if len(neighbors) == 1:
                         one_neighbor.add((i, j))
                 elif len(board[i][j]) == 2:
                     endpoints.add((i, j))
 
-        if one_neighbor:
-            pass
+        pot_endpoints = one_neighbor
+        for endpoint in endpoints:
+            pot_endpoints = pot_endpoints.union(self.ortho_neighbors(endpoint, board))
+
+        # setting this outside the while loop allows for the second endpoint
+        # to be set after the while loop breaks
+        # also makes setting this endpoint easier, since the endpoints are
+        # marked with the color twice while all other points have the color once
+        curr_point = pot_endpoints.pop()
+        path.add(curr_point)
+
+        # marking this as an endpoint
+        board[curr_point[0]][curr_point[1]] = color + color
+
+        # randomly ends after path is 3 sqs long and <= 10 sqs long
+        # does this generate a different number each loop?
+        for i in range(0, 5):
+            empty_neighbors = self.ortho_neighbors(curr_point, board)
+            print(empty_neighbors)
+            # if there is only one neighbor, don't need to perform any further analysis
+            if len(empty_neighbors) == 1:
+                print("one empty neighbor")
+                curr_point = empty_neighbors.pop()
+                path.add(curr_point)
+                board[curr_point[0]][curr_point[1]] = color
+            # if there are multiple neighbors, need to determine which one
+            # allows for "onion" behavior
+            # that neighbor will have neighbors that are filled by a line
+            # that is not the one the algorithm is currently drawing
+            elif empty_neighbors:
+                print("multiple empty neighbors")
+                for neighbor in empty_neighbors:
+                    if self.filled_neighbors(neighbor, board, path):
+                        print("appending to list")
+                        curr_point = neighbor
+                        path.add(curr_point)
+                        board[curr_point[0]][curr_point[1]] = color
+                        break;
+            # if there are no neighbors, line must end
+            else:
+                break
+
+        board[curr_point[0]][curr_point[1]] = color + color
+
+        return board
 
 
     def validate_board(self, board, visited):
@@ -117,19 +163,15 @@ class Board(object):
                     first_sq = (i // 5, i % 5)
                     break;
 
-            print(first_sq)
             cluster = [first_sq]
             self.bfs(board, cluster, cluster)
             if cluster:
                 clusters.append(cluster)
                 checked += cluster
-                print('cluster: ', cluster)
-                print('checked: ', checked)
             # reset this value
             first_sq = None
 
         for cluster in clusters:
-            print('checking cluster: ', cluster)
             if len(cluster) <= 2:
                 return False
 
@@ -167,31 +209,50 @@ class Board(object):
             self.bfs(board, children, cluster)
 
 
-    def find_neighbors(self, point, board):
-        empty_neighbors = []
-        filled_neighbors = []
+    def ortho_neighbors(self, point, board):
+        neighbors = set()
         if point[0] != 0:
-            if not board[point[0] - 1][point[1]]):
-                empty_neighbors.append((point[0] - 1, point[1]))
-            else:
-                filled_neighbors.append((point[0] - 1, point[1]))
+            if not board[point[0] - 1][point[1]]:
+                neighbors.add((point[0] - 1, point[1]))
         if (point[0] != self.size - 1):
             if not board[point[0] + 1][point[1]]:
-                empty_neighbors.append((point[0] + 1, point[1]))
-            else:
-                filled_neighbors.append((point[0] + 1, point[1]))
+                neighbors.add((point[0] + 1, point[1]))
         if (point[1] != 0):
             if not board[point[0]][point[1] - 1]:
-                empty_neighbors.append((point[0], point[1] - 1))
-            else:
-                filled_neighbors.append((point[0], point[1] - 1))
+                neighbors.add((point[0], point[1] - 1))
         if (point[1] != self.size - 1):
             if not board[point[0]][point[1] + 1]:
-                empty_neighbors.append((point[0], point[1] + 1))
-            else:
-                filled_neighbors.append((point[0], point[1] + 1))
+                neighbors.add((point[0], point[1] + 1))
 
-        return empty_neighbors, filled_neighbors
+        return neighbors
+
+    def filled_neighbors(self, point, board, path):
+        neighbors = []
+        print("path: ", path)
+        # row above
+        if point[0] != 0:
+            if board[point[0] - 1][point[1]] and ((point[0] - 1,point[1]) not in path):
+                neighbors.append((point[0] - 1,point[1]))
+            if point[1] != 0 and board[point[0] - 1][point[1] - 1] and ((point[0] - 1,point[1] - 1) not in path):
+                neighbors.append((point[0] - 1,point[1] - 1))
+            if point[1] != self.size - 1 and board[point[0] - 1][point[1] + 1] and ((point[0] - 1,point[1] + 1) not in path):
+                neighbors.append((point[0] - 1,point[1] + 1))
+        # row below
+        if point[0] != self.size - 1:
+            if board[point[0] + 1][point[1]] and ((point[0] + 1,point[1]) not in path):
+                neighbors.append((point[0] + 1,point[1]))
+            if point[1] != 0 and board[point[0] + 1][point[1] - 1] and ((point[0] + 1,point[1] - 1) not in path):
+                neighbors.append((point[0] + 1,point[1] - 1))
+            if point[1] != self.size - 1 and board[point[0] + 1][point[1] + 1] and ((point[0] + 1,point[1] + 1) not in path):
+                neighbors.append((point[0] + 1,point[1] + 1))
+        # left sq
+        if point[1] != 0 and board[point[0]][point[1] - 1] and ((point[0],point[1] - 1) not in path):
+            neighbors.append((point[0],point[1] - 1))
+        # right sq
+        if point[1] != self.size - 1 and board[point[0]][point[1] + 1] and ((point[0],point[1] + 1) not in path):
+            neighbors.append((point[0],point[1] + 1))
+
+        return neighbors
 
 
 def import_minos():
