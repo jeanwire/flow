@@ -47,13 +47,13 @@ class Board(object):
         temp, valid = self.mino_in_board(mino, row, col, color)
 
 
-        if (isinstance(valid, tuple) and not valid[0] and row + 1 < self.size - len(mino)):
+        if (isinstance(valid, set) and row + 1 < self.size - len(mino)):
             temp, valid = self.mino_in_board(mino, row + 1, col, color)
-        elif (isinstance(valid, tuple) and not valid[0] and col + 1 < self.size - len(mino[0])):
+        elif (isinstance(valid, set) and col + 1 < self.size - len(mino[0])):
             temp, valid = self.mino_in_board(mino, row, col + 1, color)
-        elif (isinstance(valid, tuple) and not valid[0] and row - 1 >= 0):
+        elif (isinstance(valid, set) and row - 1 >= 0):
             temp, valid = self.mino_in_board(mino, row - 1, col, color)
-        elif (isinstance(valid, tuple) and not valid[0] and col - 1 >= 0):
+        elif (isinstance(valid, set) and col - 1 >= 0):
             temp, valid = self.mino_in_board(mino, row, col - 1, color)
         return (temp, valid)
 
@@ -115,10 +115,8 @@ class Board(object):
         # randomly ends after path is 3 sqs long and <= 8 sqs long
         while (len(path) < 3 or random.randint(0, 8 - len(path))):
             empty_neighbors = self.ortho_neighbors(curr_point, board)
-            print(empty_neighbors)
             # if there is only one neighbor, don't need to perform any further analysis
             if len(empty_neighbors) == 1:
-                print("one empty neighbor")
                 curr_point = empty_neighbors.pop()
                 path.add(curr_point)
                 board[curr_point[0]][curr_point[1]] = color
@@ -127,10 +125,8 @@ class Board(object):
             # that neighbor will have neighbors that are filled by a line
             # that is not the one the algorithm is currently drawing
             elif empty_neighbors:
-                print("multiple empty neighbors")
                 for neighbor in empty_neighbors:
                     if self.filled_neighbors(neighbor, board, path):
-                        print("appending to list")
                         curr_point = neighbor
                         path.add(curr_point)
                         board[curr_point[0]][curr_point[1]] = color
@@ -143,9 +139,29 @@ class Board(object):
 
         # if line is only 2 sqs long, need to backtrack
 
-
         valid = self.validate_board(board, path.union(self.visited))
-        print("valid? ", valid)
+
+        # if line has left 1 or 2 sqs open adjacent to the endpoint, need to extend the line
+        if isinstance(valid, set):
+            board[curr_point[0]][curr_point[1]] = color;
+
+            while(len(valid) > 0):
+                neighbors = self.ortho_neighbors(curr_point, board)
+                for sq in valid:
+                    if sq in neighbors:
+                        curr_point = sq
+                        board[curr_point[0]][curr_point[1]] = color
+                        break
+
+                prev_valid = valid;
+                valid = valid.difference({curr_point})
+
+                # if sq is not a neighbor of the endpoint, will need to "roll back" the line
+                if prev_valid == valid:
+                    break
+
+            board[curr_point[0]][curr_point[1]] = color + color
+
 
         return board
 
@@ -166,7 +182,7 @@ class Board(object):
                     break;
 
             cluster = set({first_sq})
-            self.bfs(board, cluster.copy(), cluster.copy())
+            self.bfs(board, cluster.copy(), cluster)
             if cluster:
                 clusters.append(cluster)
                 for sq in cluster:
@@ -176,7 +192,7 @@ class Board(object):
 
         for cluster in clusters:
             if len(cluster) <= 2:
-                return False, cluster
+                return cluster
 
         return True
 
@@ -227,7 +243,6 @@ class Board(object):
         diagonal neighbors. Only counts neighbors if they are not in the line
         currently being drawn"""
         neighbors = []
-        print("path: ", path)
         # row above
         if point[0] != 0:
             if board[point[0] - 1][point[1]] and ((point[0] - 1,point[1]) not in path):
