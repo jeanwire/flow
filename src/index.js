@@ -18,9 +18,13 @@ function Square(props) {
     return (
       <button
         className="square"
-        style={{background: props.color}}
+        style={{background: "white"}}
         onClick={props.onClick}>
-          {'☼'}
+        <button
+          className="circle"
+          style={{background: props.color}}
+          onClick={props.onClick}
+        />
       </button>
     )
   }
