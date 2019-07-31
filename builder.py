@@ -86,7 +86,7 @@ class Board(object):
         one_neighbor = set()
         endpoints = set()
         color = self.unused_colors.pop()
-        path = set()
+        path = []
         # build up sets of points with 1 neighbor and endpoints
         # these data are used to find where to draw the next line
         for i in range(self.size):
@@ -107,7 +107,7 @@ class Board(object):
         # also makes setting this endpoint easier, since the endpoints are
         # marked with the color twice while all other points have the color once
         curr_point = pot_endpoints.pop()
-        path.add(curr_point)
+        path.append(curr_point)
 
         # marking this as an endpoint
         board[curr_point[0]][curr_point[1]] = color + color
@@ -118,17 +118,20 @@ class Board(object):
             # if there is only one neighbor, don't need to perform any further analysis
             if len(empty_neighbors) == 1:
                 curr_point = empty_neighbors.pop()
-                path.add(curr_point)
+                path.append(curr_point)
                 board[curr_point[0]][curr_point[1]] = color
             # if there are multiple neighbors, need to determine which one
             # allows for "onion" behavior
             # that neighbor will have neighbors that are filled by a line
             # that is not the one the algorithm is currently drawing
             elif empty_neighbors:
+                path_set = set()
+                for sq in path:
+                    path_set.add(sq)
                 for neighbor in empty_neighbors:
-                    if self.filled_neighbors(neighbor, board, path):
+                    if self.filled_neighbors(neighbor, board, path_set):
                         curr_point = neighbor
-                        path.add(curr_point)
+                        path.append(curr_point)
                         board[curr_point[0]][curr_point[1]] = color
                         break;
             # if there are no neighbors, line must end
@@ -137,11 +140,23 @@ class Board(object):
 
         board[curr_point[0]][curr_point[1]] = color + color
 
-        # if line is only 2 sqs long, need to backtrack
+        # if line is only 2 sqs long, need to extend in other direction
+        if len(path) < 3:
+            empty_neighbors = self.ortho_neighbors(path[0], board)
+            board[path[0][0]][path[0][1]] = color
+            sq = empty_neighbors.pop()
+            path.append(sq)
+            board[sq[0]][sq[1]] = color + color
 
-        valid = self.validate_board(board, path.union(self.visited))
 
+        path_set = set()
+        for sq in path:
+            path_set.add(sq)
+        valid = self.validate_board(board, path_set.union(self.visited))
+
+        needs_rollback = False
         # if line has left 1 or 2 sqs open adjacent to the endpoint, need to extend the line
+        # if open sqs are not adjacent to an endpoint, need to remove sqs from the path
         if isinstance(valid, set):
             board[curr_point[0]][curr_point[1]] = color;
 
@@ -151,6 +166,7 @@ class Board(object):
                     if sq in neighbors:
                         curr_point = sq
                         board[curr_point[0]][curr_point[1]] = color
+                        path.append(curr_point)
                         break
 
                 prev_valid = valid;
@@ -158,11 +174,22 @@ class Board(object):
 
                 # if sq is not a neighbor of the endpoint, will need to "roll back" the line
                 if prev_valid == valid:
+                    needs_rollback = True
                     break
 
             board[curr_point[0]][curr_point[1]] = color + color
 
+        while (needs_rollback):
+            self.rollback(board, path)
+            path_set = set()
+            for sq in path:
+                path_set.add(sq)
+            valid = self.validate_board(board, path_set.union(self.visited))
+            if not isinstance(valid, set):
+                needs_rollback = False
 
+        for sq in path:
+            self.visited.add(sq)
         return board
 
 
@@ -267,6 +294,13 @@ class Board(object):
             neighbors.append((point[0],point[1] + 1))
 
         return neighbors
+
+
+    def rollback(self, board, path):
+        last_sq = path.pop();
+        board[last_sq[0]][last_sq[1]] = None;
+        last_sq = path[len(path) - 1]
+        board[last_sq[0]][last_sq[1]] *= 2;
 
 
 def import_minos():
