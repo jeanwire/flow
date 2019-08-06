@@ -36,7 +36,7 @@ class Board(object):
             self.game.append([None] * size)
         self.visited = set()
         self.complete = False
-        self.unused_colors = ['m', 'p', 'a', 'o', 'y', 'b', 'g', 'r']
+        self.unused_colors = ['m', 'p', 'c', 'o', 'y', 'b', 'g', 'r']
 
 
     def insert(self, mino):
@@ -146,6 +146,10 @@ class Board(object):
             board[path[0][0]][path[0][1]] = color
             sq = empty_neighbors.pop()
             path.append(sq)
+            # keep the path sqs in order
+            temp = path[0]
+            path[0] = path[1]
+            path[1] = temp
             board[sq[0]][sq[1]] = color + color
 
 

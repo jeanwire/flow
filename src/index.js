@@ -146,6 +146,15 @@ class GameImport extends React.Component {
             case 'bb':
               colors[i].push('blue');
               break;
+            case 'cc':
+              colors[i].push('cyan');
+              break;
+            case 'pp':
+              colors[i].push('purple');
+              break;
+            case 'mm':
+              colors[i].push('maroon');
+              break;
             default:
             // should not do this, means there is an error
               colors[i].push('pink');
