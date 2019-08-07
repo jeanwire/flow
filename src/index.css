@@ -28,3 +28,8 @@
   margin-right: 0px;
   z-index: 2;
 }
+
+.game-info {
+  font: 12px "Century Gothic", Futura, sans-serif;
+  margin: 20px;
+}
