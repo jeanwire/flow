@@ -36,7 +36,7 @@ class Board(object):
         self.game = []
         for i in range(size):
             self.game.append([None] * size)
-        self.visited = set()
+        self.paths = []
         self.complete = False
         self.unused_colors = ['m', 'p', 'c', 'o', 'y', 'b', 'g', 'r']
 
@@ -63,6 +63,7 @@ class Board(object):
     def mino_in_board(self, mino, row, col, color):
         temp = copy.deepcopy(self.game)
         temp_visited = set()
+        endpoints = set()
 
         mino_row = 0
         for i in range(row, row + len(mino)):
@@ -70,15 +71,35 @@ class Board(object):
             for j in range(col, col + len(mino[0])):
                 if (mino[mino_row][mino_col] != 'O'):
                     temp[i][j] = re.sub('X', color, mino[mino_row][mino_col])
-                    temp_visited.add((i, j))
+                    if (len(mino[mino_row][mino_col]) == 2):
+                        endpoints.add((i, j))
+                    else:
+                        temp_visited.add((i, j))
                 mino_col += 1
             mino_row += 1
 
-        valid = self.validate_board(temp, temp_visited)
+        valid = self.validate_board(temp, temp_visited.union(endpoints))
+
         if (valid):
-            for sq in temp_visited:
-                self.visited.add(sq)
+            path = self.mino_to_line(temp_visited, endpoints)
+            self.paths.append(path)
         return (temp, valid)
+
+
+    def mino_to_line(self, mino_sqs, endpts):
+        path = [None for i in range(len(mino_sqs) + 2)]
+        path[0] = endpts.pop()
+        path[len(path) - 1] = endpts.pop()
+        for i in range(1, len(mino_sqs)):
+            pot_next_point = set()
+            pot_next_point.add((path[0][0] - 1, path[0][1]))
+            pot_next_point.add((path[0][0] + 1, path[0][1]))
+            pot_next_point.add((path[0][0], path[0][1] - 1))
+            pot_next_point.add((path[0][0], path[0][1] + 1))
+            next_point = pot_next_point.intersection(mino_sqs)
+            path[i] = next_point.pop()
+
+        return path
 
 
     def onion(self):
@@ -108,7 +129,7 @@ class Board(object):
             # allows for "onion" behavior
             elif empty_neighbors:
                 for neighbor in empty_neighbors:
-                    if self.filled_neighbors(neighbor, board, path):
+                    if self.filled_neighbors(neighbor, board, path)[0]:
                         curr_point = neighbor
                         path.append(curr_point)
                         board[curr_point[0]][curr_point[1]] = color
@@ -136,15 +157,17 @@ class Board(object):
                 needs_rollback = True
                 break
 
-        while (needs_rollback):
+        while (needs_rollback and len(board) > 2):
             self.rollback(board, path)
             valid = self.validate_board(board, path)
             if not isinstance(valid, set):
                 needs_rollback = False
 
-        for sq in path:
-            self.visited.add(sq)
-        return board
+        if (not needs_rollback):
+            self.paths.append(path)
+            return board
+
+        return self.game
 
 
     def validate_board(self, board, path):
@@ -152,7 +175,10 @@ class Board(object):
         than 3 squares"""
         clusters = []
 
-        checked = self.visited.copy()
+        checked = set()
+        for old_path in self.paths:
+            for sq in old_path:
+                checked.add(sq)
         for sq in path:
             checked.add(sq)
 
@@ -229,31 +255,56 @@ class Board(object):
         path = set()
         for sq in path_list:
             path.add(sq)
-        neighbors = []
+        filled_neighbors = []
+        own_neighbors = []
         # row above
         if point[0] != 0:
-            if board[point[0] - 1][point[1]] and ((point[0] - 1,point[1]) not in path):
-                neighbors.append((point[0] - 1,point[1]))
-            if point[1] != 0 and board[point[0] - 1][point[1] - 1] and ((point[0] - 1,point[1] - 1) not in path):
-                neighbors.append((point[0] - 1,point[1] - 1))
-            if point[1] != self.size - 1 and board[point[0] - 1][point[1] + 1] and ((point[0] - 1,point[1] + 1) not in path):
-                neighbors.append((point[0] - 1,point[1] + 1))
+            if board[point[0] - 1][point[1]]:
+                if (point[0] - 1,point[1]) not in path:
+                    filled_neighbors.append((point[0] - 1,point[1]))
+                else:
+                    own_neighbors.append((point[0] - 1,point[1]))
+            if point[1] != 0 and board[point[0] - 1][point[1] - 1]:
+                if (point[0] - 1,point[1] - 1) not in path:
+                    filled_neighbors.append((point[0] - 1,point[1] - 1))
+                else:
+                    own_neighbors.append((point[0] - 1,point[1] - 1))
+            if point[1] != self.size - 1 and board[point[0] - 1][point[1] + 1]:
+                if (point[0] - 1,point[1] + 1) not in path:
+                    filled_neighbors.append((point[0] - 1,point[1] + 1))
+                else:
+                    own_neighbors.append((point[0] - 1,point[1] + 1))
         # row below
         if point[0] != self.size - 1:
-            if board[point[0] + 1][point[1]] and ((point[0] + 1,point[1]) not in path):
-                neighbors.append((point[0] + 1,point[1]))
-            if point[1] != 0 and board[point[0] + 1][point[1] - 1] and ((point[0] + 1,point[1] - 1) not in path):
-                neighbors.append((point[0] + 1,point[1] - 1))
-            if point[1] != self.size - 1 and board[point[0] + 1][point[1] + 1] and ((point[0] + 1,point[1] + 1) not in path):
-                neighbors.append((point[0] + 1,point[1] + 1))
+            if board[point[0] + 1][point[1]]:
+                if (point[0] + 1,point[1]) not in path:
+                    filled_neighbors.append((point[0] + 1,point[1]))
+                else:
+                    own_neighbors.append((point[0] + 1,point[1]))
+            if point[1] != 0 and board[point[0] + 1][point[1] - 1]:
+                if (point[0] + 1,point[1] - 1) not in path:
+                    filled_neighbors.append((point[0] + 1,point[1] - 1))
+                else:
+                    own_neighbors.append((point[0] + 1,point[1] - 1))
+            if point[1] != self.size - 1 and board[point[0] + 1][point[1] + 1]:
+                if (point[0] + 1,point[1] + 1) not in path:
+                    filled_neighbors.append((point[0] + 1,point[1] + 1))
+                else:
+                    own_neighbors.append((point[0] + 1,point[1] + 1))
         # left sq
-        if point[1] != 0 and board[point[0]][point[1] - 1] and ((point[0],point[1] - 1) not in path):
-            neighbors.append((point[0],point[1] - 1))
+        if point[1] != 0 and board[point[0]][point[1] - 1]:
+            if (point[0],point[1] - 1) not in path:
+                filled_neighbors.append((point[0],point[1] - 1))
+            else:
+                own_neighbors.append((point[0],point[1] - 1))
         # right sq
-        if point[1] != self.size - 1 and board[point[0]][point[1] + 1] and ((point[0],point[1] + 1) not in path):
-            neighbors.append((point[0],point[1] + 1))
+        if point[1] != self.size - 1 and board[point[0]][point[1] + 1]:
+            if (point[0],point[1] + 1) not in path:
+                filled_neighbors.append((point[0],point[1] + 1))
+            else:
+                own_neighbors.append((point[0],point[1] + 1))
 
-        return neighbors
+        return (filled_neighbors, own_neighbors)
 
 
     def rollback(self, board, path):
@@ -307,6 +358,9 @@ class Board(object):
                 path.append(sq)
                 board[sq[0]][sq[1]] = color + color
 
+
+    def fill_holes(self, board, cluster):
+        pass
 
 def import_minos():
     with open('minos.json') as minos_file:
