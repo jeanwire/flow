@@ -89,7 +89,6 @@ class Board(object):
 
         if (not isinstance(valid, set)):
             path = self.mino_to_line(temp_visited, endpoints)
-            print(path)
             self.paths.append(path)
         return (temp, valid)
 
@@ -121,14 +120,24 @@ class Board(object):
         curr_point = pot_endpoints.pop()
         path.append(curr_point)
         board[curr_point[0]][curr_point[1]] = color + color
-        # if the endpoint is on the edge, it can move along the edge
-        self.game = self.onion(path, board, color)
-        # self.game = self.edge(path, board, color, curr_point)
+        # if the endpoint is on the edge, it has a 1/4 chance of moving along the edge
+        if curr_point[0] == 0 or curr_point[0] == self.size - 1 or curr_point[1] == 0 or curr_point[1] == self.size - 1:
+            if random.random < 0.25:
+                self.game = self.edge(path, board, color)
+            else:
+                self.game = self.onion(path, board, color)
+
+        else:
+            self.game = self.onion(path, board, color)
         total_sqs_filled = 0
         for path in self.paths:
             total_sqs_filled += len(path)
         if total_sqs_filled == self.size * self.size:
             self.complete = True
+
+
+    def edge(self, path, board, color):
+        pass 
 
 
     def onion(self, path, board, color):
@@ -139,11 +148,12 @@ class Board(object):
         # randomly ends after path is 3 sqs long and <= 8 sqs long
         while (len(path) < 3 or random.randint(0, 8 - len(path))):
             empty_neighbors = self.ortho_neighbors(curr_point, board)
-            # if there is only one neighbor, don't need to perform any further analysis
+            # if there is only one neighbor, need to make sure line isn't doubling back
             if len(empty_neighbors) == 1:
                 curr_point = empty_neighbors.pop()
-                path.append(curr_point)
-                board[curr_point[0]][curr_point[1]] = color
+                if len(self.filled_neighbors(curr_point, board, path)[1]) < 3:
+                    path.append(curr_point)
+                    board[curr_point[0]][curr_point[1]] = color
             # if there are multiple neighbors, need to determine which one
             # allows for "onion" behavior
             elif empty_neighbors:
@@ -158,10 +168,6 @@ class Board(object):
                 break
 
         board[curr_point[0]][curr_point[1]] = color + color
-
-        print(" ")
-        for line in board:
-            print(line)
 
         # if line is only 2 sqs long, need to extend in other direction
         if len(path) < 3:
@@ -205,8 +211,6 @@ class Board(object):
                 checked.add(sq)
         for sq in path:
             checked.add(sq)
-
-        print(checked)
 
         first_sq = None
 
@@ -335,7 +339,6 @@ class Board(object):
 
 
     def rollback(self, board, path):
-        print("rollback")
         last_sq = path.pop();
         board[last_sq[0]][last_sq[1]] = None;
         last_sq = path[len(path) - 1]
@@ -368,7 +371,6 @@ class Board(object):
         empty_neighbors = self.ortho_neighbors(path[0], board)
         # if the path can be extended at its beginning
         if empty_neighbors:
-            print("extend at beginning")
             board[path[0][0]][path[0][1]] = color
             sq = empty_neighbors.pop()
             path.insert(0, sq)
@@ -376,7 +378,6 @@ class Board(object):
             [0]][sq[1]] = color + color
         # if the path can be extended at its end
         else:
-            print("extend at end")
             empty_neighbors = self.ortho_neighbors(path[len(path) - 1], board)
             if empty_neighbors:
                 board[path[len(path) - 1][0]][path[len(path) - 1][1]] = color
