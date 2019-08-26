@@ -22,13 +22,13 @@ def main():
 
     print(" ")
 
-    board.draw_line()
+    board.draw_line(1)
     for line in board.game:
         print(line)
 
     print(" ")
 
-    board.draw_line()
+    board.draw_line(2)
     for line in board.game:
         print(line)
 
@@ -36,16 +36,38 @@ def main():
     # validate board, repeat adding lines if necessary
     # when board is completed, write to file in json format
 
+# class Point():
+#     def __init__(self, x, y, size = 5):
+#         this.x = x
+#         this.y = y
+#         self.size = size
+#         self.valid = x < size -1 and x >=0 and y < size - 1 and y >= 0
+#     def __eq__(self, p2):
+#         return this.x == p2.x and this.y == p2.y
+#     def __hash__(self):
+#         return hash((this.x, this.y))
+#     def orthogonal(self):
+#         ret = [Point(x - 1, y), Point(x + 1, y), Point(x, y - 1), Point(x, y + 1)]
+#         return [r for r in ret if r.valid]
+#     def all_neighbors(self):
+#         ret = [Point(x - 1, y + 1), Point(x, y + 1), Point(x + 1, y + 1),
+#         Point(x - 1, y), Point(x + 1, y), Point(x - 1, y - 1), Point(x, y - 1),
+#         Point(x + 1, y - 1)]
+#         return [r for r in ret if r.valid]
 
 class Board(object):
     def __init__(self, size):
         self.size = size
-        self.game = []
-        for i in range(size):
-            self.game.append([None] * size)
+        self.game = [[None for _ in range(size)] for _ in range(size)]
         self.paths = []
         self.complete = False
         self.unused_colors = ['m', 'p', 'c', 'o', 'y', 'b', 'g', 'r']
+        extremities = [(0, i) for i in range(size)]
+        extremities.extend([(i, 0) for i in range(size)])
+        extremities.extend([(i, size - 1) for i in range(size)])
+        extremities.extend([(size - 1, i) for i in range(size)])
+        self.extremities = set(extremities)
+        self.corners = set([(0, 0), (0, size - 1), (size - 1, 0), (size - 1, size - 1)])
 
 
     def insert(self, mino):
@@ -110,7 +132,7 @@ class Board(object):
         return path
 
 
-    def draw_line(self):
+    def draw_line(self, num_line):
         board = copy.deepcopy(self.game)
         color = self.unused_colors.pop()
         path = []
@@ -120,15 +142,16 @@ class Board(object):
         curr_point = pot_endpoints.pop()
         path.append(curr_point)
         board[curr_point[0]][curr_point[1]] = color + color
-        # if the endpoint is on the edge, it has a 1/4 chance of moving along the edge
-        if curr_point[0] == 0 or curr_point[0] == self.size - 1 or curr_point[1] == 0 or curr_point[1] == self.size - 1:
-            if random.random < 0.25:
+        # if the endpoint is on the edge and is not the first line, it has a 1/4 chance of moving along the edge
+        # if num_line > 1 and (curr_point[0] == 0 or curr_point[0] == self.size - 1 or curr_point[1] == 0 or curr_point[1] == self.size - 1):
+        if num_line > 1 and curr_point in self.extremities:
+            if random.random() < 0.25:
                 self.game = self.edge(path, board, color)
             else:
                 self.game = self.onion(path, board, color)
-
         else:
             self.game = self.onion(path, board, color)
+
         total_sqs_filled = 0
         for path in self.paths:
             total_sqs_filled += len(path)
@@ -137,7 +160,72 @@ class Board(object):
 
 
     def edge(self, path, board, color):
-        pass 
+        print("edge line")
+        curr_point = path[0]
+        # TODO: alias side to true/false so I can use booleans to switch
+        side = ""
+        direction = 0
+
+        neighbors = self.ortho_neighbors(curr_point, board)
+        for neighbor in neighbors:
+            if neighbor in self.extremities:
+                if (neighbor[0] < curr_point[0]):
+                    side = "horizontal"
+                    direction = -1
+                elif (neighbor[0] > curr_point[0]):
+                    side = "horizontal"
+                    direction = +1
+                elif (neighbor[1] < curr_point[1]):
+                    side = "vertical"
+                    direction = -1
+                else:
+                    side = "vertical"
+                    direction = +1
+
+                curr_point = neighbor
+                path.append(curr_point)
+                board[curr_point[0]][curr_point[1]] = color
+                break;
+
+        while (len(path) < 3 or random.randint(0, 8 - len(path))):
+            if side == "horizontal" and (curr_point[0], curr_point[1] + direction) in self.extremities:
+                curr_point = (curr_point[0], curr_point[1] + direction)
+                path.append(curr_point)
+                board[curr_point[0]][curr_point[1]] = color
+            elif side == "vertical" and (curr_point[0] + direction, curr_point[1]) in self.extremities:
+                curr_point = (curr_point[0] + direction, curr_point[1])
+                path.append(curr_point)
+                board[curr_point[0]][curr_point[1]] = color
+            else:
+                if side == "horizontal":
+                    side = "vertical"
+                    if (curr_point[0] + direction, curr_point[1]) in self.extremities:
+                        curr_point = (curr_point[0] + direction, curr_point[1])
+                        path.append(curr_point)
+                        board[curr_point[0]][curr_point[1]] = color
+                    elif (curr_point[0] - direction, curr_point[1]) in self.extremities:
+                        direction = - direction
+                        curr_point = (curr_point[0] + direction, curr_point[1])
+                        path.append(curr_point)
+                        board[curr_point[0]][curr_point[1]] = color
+                    else:
+                        break
+                else:
+                    side = "horizontal"
+                    if (curr_point[0], curr_point[1] + direction) in self.extremities:
+                        curr_point = (curr_point[0], curr_point[1] + direction)
+                        path.append(curr_point)
+                        board[curr_point[0]][curr_point[1]] = color
+                    elif (curr_point[0], curr_point[1] - direction) in self.extremities:
+                        direction = - direction
+                        curr_point = (curr_point[0], curr_point[1] + direction)
+                        path.append(curr_point)
+                        board[curr_point[0]][curr_point[1]] = color
+                    else:
+                        break
+
+        board[curr_point[0]][curr_point[1]] *= 2
+        return board
 
 
     def onion(self, path, board, color):
@@ -155,7 +243,7 @@ class Board(object):
                     path.append(curr_point)
                     board[curr_point[0]][curr_point[1]] = color
             # if there are multiple neighbors, need to determine which one
-            # allows for "onion" behavior
+            # allows for "onion" behavior, which is a sq that contains filled neighbors
             elif empty_neighbors:
                 for neighbor in empty_neighbors:
                     if self.filled_neighbors(neighbor, board, path)[0]:
