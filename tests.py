@@ -49,6 +49,8 @@ def test_edge():
     [None, 'gg', 'r', 'r', 'rr']
     ]
 
+    foo.paths = [[(3, 1), (3, 2), (4, 2), (4, 3), (4, 4)]]
+
     path = [(4, 1)]
     foo.edge(path, foo.game, 'g')
     print(" ")

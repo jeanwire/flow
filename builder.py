@@ -7,30 +7,28 @@ import copy
 
 def main():
     minos_dict = import_minos()
-    board = Board(5)
-    inserted = False
-    while (not inserted):
-        mino = copy.deepcopy(select_mino(minos_dict))
-        print(mino)
+    for _ in range(100):
+        board = Board(5)
+        inserted = False
+        while (not inserted):
+            mino = copy.deepcopy(select_mino(minos_dict))
 
-        if (len(mino[0]) <= board.size):
-            temp_board, inserted = board.insert(mino)
+            if (len(mino[0]) <= board.size):
+                temp_board, inserted = board.insert(mino)
 
-    board.game = copy.deepcopy(temp_board)
-    for line in board.game:
-        print(line)
+        board.game = copy.deepcopy(temp_board)
+        num_line = 1
+        while (not board.complete):
+            board.draw_line(num_line)
+            num_line += 1
+            if num_line > 100:
+                print("BAD BOARD")
+                break
 
-    print(" ")
+        for line in board.game:
+            print(line)
 
-    board.draw_line(1)
-    for line in board.game:
-        print(line)
-
-    print(" ")
-
-    board.draw_line(2)
-    for line in board.game:
-        print(line)
+        print(" ")
 
     # build lines around mino(s)
     # validate board, repeat adding lines if necessary
@@ -160,26 +158,26 @@ class Board(object):
 
 
     def edge(self, path, board, color):
-        print("edge line")
         curr_point = path[0]
-        # TODO: alias side to true/false so I can use booleans to switch
-        side = ""
+        horizontal = True
+        vertical = False
+        side = horizontal
         direction = 0
 
         neighbors = self.ortho_neighbors(curr_point, board)
         for neighbor in neighbors:
             if neighbor in self.extremities:
                 if (neighbor[0] < curr_point[0]):
-                    side = "horizontal"
+                    side = horizontal
                     direction = -1
                 elif (neighbor[0] > curr_point[0]):
-                    side = "horizontal"
+                    side = horizontal
                     direction = +1
                 elif (neighbor[1] < curr_point[1]):
-                    side = "vertical"
+                    side = vertical
                     direction = -1
                 else:
-                    side = "vertical"
+                    side = vertical
                     direction = +1
 
                 curr_point = neighbor
@@ -187,18 +185,18 @@ class Board(object):
                 board[curr_point[0]][curr_point[1]] = color
                 break;
 
-        while (len(path) < 3 or random.randint(0, 8 - len(path))):
-            if side == "horizontal" and (curr_point[0], curr_point[1] + direction) in self.extremities:
+        while (len(path) < 3 or random.randint(0, 9 - len(path))):
+            if side == horizontal and (curr_point[0], curr_point[1] + direction) in self.extremities:
                 curr_point = (curr_point[0], curr_point[1] + direction)
                 path.append(curr_point)
                 board[curr_point[0]][curr_point[1]] = color
-            elif side == "vertical" and (curr_point[0] + direction, curr_point[1]) in self.extremities:
+            elif side == vertical and (curr_point[0] + direction, curr_point[1]) in self.extremities:
                 curr_point = (curr_point[0] + direction, curr_point[1])
                 path.append(curr_point)
                 board[curr_point[0]][curr_point[1]] = color
             else:
-                if side == "horizontal":
-                    side = "vertical"
+                if side == horizontal:
+                    side = not side
                     if (curr_point[0] + direction, curr_point[1]) in self.extremities:
                         curr_point = (curr_point[0] + direction, curr_point[1])
                         path.append(curr_point)
@@ -211,7 +209,7 @@ class Board(object):
                     else:
                         break
                 else:
-                    side = "horizontal"
+                    side = not side
                     if (curr_point[0], curr_point[1] + direction) in self.extremities:
                         curr_point = (curr_point[0], curr_point[1] + direction)
                         path.append(curr_point)
@@ -225,6 +223,7 @@ class Board(object):
                         break
 
         board[curr_point[0]][curr_point[1]] *= 2
+        board = self.validate_line(board, path, color)
         return board
 
 
@@ -234,7 +233,7 @@ class Board(object):
         the already present lines."""
         curr_point = path[0]
         # randomly ends after path is 3 sqs long and <= 8 sqs long
-        while (len(path) < 3 or random.randint(0, 8 - len(path))):
+        while (len(path) < 3 or random.randint(0, 9 - len(path))):
             empty_neighbors = self.ortho_neighbors(curr_point, board)
             # if there is only one neighbor, need to make sure line isn't doubling back
             if len(empty_neighbors) == 1:
@@ -256,7 +255,11 @@ class Board(object):
                 break
 
         board[curr_point[0]][curr_point[1]] = color + color
+        board = self.validate_line(board, path, color)
+        return board
 
+
+    def validate_line(self, board, path, color):
         # if line is only 2 sqs long, need to extend in other direction
         if len(path) < 3:
             self.extend_path(board, path, color)
@@ -285,6 +288,7 @@ class Board(object):
             self.paths.append(path)
             return board
 
+        self.unused_colors.append(color)
         return self.game
 
 
