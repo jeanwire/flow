@@ -1,9 +1,15 @@
 from flask import Flask, json, Response, redirect
 from flask_cors import CORS
 import os
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
+# allows redirects
 CORS(app)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:G8AR7Cseu5bTh9pPttcX@localhost/dvdrental'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
 
 @app.route('/')
 def index():

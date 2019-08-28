@@ -30,8 +30,6 @@ def main():
 
         print(" ")
 
-    # build lines around mino(s)
-    # validate board, repeat adding lines if necessary
     # when board is completed, write to file in json format
 
 # class Point():
@@ -137,7 +135,12 @@ class Board(object):
 
         pot_endpoints = self.find_pot_ends(board)
 
-        curr_point = pot_endpoints.pop()
+        if pot_endpoints:
+            curr_point = pot_endpoints.pop()
+        else:
+            for line in board:
+                print(line)
+            curr_point = pot_endpoints.pop()
         path.append(curr_point)
         board[curr_point[0]][curr_point[1]] = color + color
         # if the endpoint is on the edge and is not the first line, it has a 1/4 chance of moving along the edge
@@ -158,6 +161,7 @@ class Board(object):
 
 
     def edge(self, path, board, color):
+        print("EDGE LINE")
         curr_point = path[0]
         horizontal = True
         vertical = False
@@ -186,39 +190,59 @@ class Board(object):
                 break;
 
         while (len(path) < 3 or random.randint(0, 9 - len(path))):
+            # if the line can keep going in the same direction
             if side == horizontal and (curr_point[0], curr_point[1] + direction) in self.extremities:
-                curr_point = (curr_point[0], curr_point[1] + direction)
-                path.append(curr_point)
-                board[curr_point[0]][curr_point[1]] = color
+                if not board[curr_point[0]][curr_point[1] + direction]:
+                    curr_point = (curr_point[0], curr_point[1] + direction)
+                    path.append(curr_point)
+                    board[curr_point[0]][curr_point[1]] = color
+                else:
+                    break
             elif side == vertical and (curr_point[0] + direction, curr_point[1]) in self.extremities:
-                curr_point = (curr_point[0] + direction, curr_point[1])
-                path.append(curr_point)
-                board[curr_point[0]][curr_point[1]] = color
+                if not board[curr_point[0] + direction][curr_point[1]]:
+                    curr_point = (curr_point[0] + direction, curr_point[1])
+                    path.append(curr_point)
+                    board[curr_point[0]][curr_point[1]] = color
+                else:
+                    break
+            # if the line needs to turn
             else:
                 if side == horizontal:
                     side = not side
                     if (curr_point[0] + direction, curr_point[1]) in self.extremities:
-                        curr_point = (curr_point[0] + direction, curr_point[1])
-                        path.append(curr_point)
-                        board[curr_point[0]][curr_point[1]] = color
+                        if not board[curr_point[0] + direction][curr_point[1]]:
+                            curr_point = (curr_point[0] + direction, curr_point[1])
+                            path.append(curr_point)
+                            board[curr_point[0]][curr_point[1]] = color
+                        else:
+                            break
                     elif (curr_point[0] - direction, curr_point[1]) in self.extremities:
-                        direction = - direction
-                        curr_point = (curr_point[0] + direction, curr_point[1])
-                        path.append(curr_point)
-                        board[curr_point[0]][curr_point[1]] = color
+                        if not board[curr_point[0] - direction][curr_point[1]]:
+                            direction = - direction
+                            curr_point = (curr_point[0] + direction, curr_point[1])
+                            path.append(curr_point)
+                            board[curr_point[0]][curr_point[1]] = color
+                        else:
+                            break
                     else:
                         break
                 else:
                     side = not side
                     if (curr_point[0], curr_point[1] + direction) in self.extremities:
-                        curr_point = (curr_point[0], curr_point[1] + direction)
-                        path.append(curr_point)
-                        board[curr_point[0]][curr_point[1]] = color
+                        if not board[curr_point[0]][curr_point[1] + direction]:
+                            curr_point = (curr_point[0], curr_point[1] + direction)
+                            path.append(curr_point)
+                            board[curr_point[0]][curr_point[1]] = color
+                        else:
+                            break
                     elif (curr_point[0], curr_point[1] - direction) in self.extremities:
-                        direction = - direction
-                        curr_point = (curr_point[0], curr_point[1] + direction)
-                        path.append(curr_point)
-                        board[curr_point[0]][curr_point[1]] = color
+                        if not board[curr_point[0]][curr_point[1] - direction]:
+                            direction = - direction
+                            curr_point = (curr_point[0], curr_point[1] + direction)
+                            path.append(curr_point)
+                            board[curr_point[0]][curr_point[1]] = color
+                        else:
+                            break
                     else:
                         break
 
@@ -232,7 +256,7 @@ class Board(object):
         The line may trace along the edges if it cannot trace any further along
         the already present lines."""
         curr_point = path[0]
-        # randomly ends after path is 3 sqs long and <= 8 sqs long
+        # randomly ends after path is 3 sqs long and <= 9 sqs long
         while (len(path) < 3 or random.randint(0, 9 - len(path))):
             empty_neighbors = self.ortho_neighbors(curr_point, board)
             # if there is only one neighbor, need to make sure line isn't doubling back
@@ -260,7 +284,7 @@ class Board(object):
 
 
     def validate_line(self, board, path, color):
-        # if line is only 2 sqs long, need to extend in other direction
+        # if line is only 2 sqs long, need to extend
         if len(path) < 3:
             self.extend_path(board, path, color)
 
@@ -294,7 +318,7 @@ class Board(object):
 
     def validate_board(self, board, path):
         """Determines whether a board contains any isolated groups of fewer
-        than 3 squares"""
+        than 3 squares. Returns true or a set of 1 or 2 isolated squares"""
         clusters = []
 
         checked = set()
@@ -466,8 +490,7 @@ class Board(object):
             board[path[0][0]][path[0][1]] = color
             sq = empty_neighbors.pop()
             path.insert(0, sq)
-            board[sq
-            [0]][sq[1]] = color + color
+            board[sq[0]][sq[1]] = color + color
         # if the path can be extended at its end
         else:
             empty_neighbors = self.ortho_neighbors(path[len(path) - 1], board)
