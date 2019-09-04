@@ -31,7 +31,7 @@ def main():
         print(" ")
 
     # when board is completed, write to file in json format
-
+# a thought journey: making the board a grid of Points
 # class Point():
 #     def __init__(self, x, y, size = 5):
 #         this.x = x
@@ -187,7 +187,7 @@ class Board(object):
                 curr_point = neighbor
                 path.append(curr_point)
                 board[curr_point[0]][curr_point[1]] = color
-                break;
+                break
 
         while (len(path) < 3 or random.randint(0, 9 - len(path))):
             # if the line can keep going in the same direction
@@ -208,6 +208,7 @@ class Board(object):
             # if the line needs to turn
             else:
                 if side == horizontal:
+                    # direction is now vertical
                     side = not side
                     if (curr_point[0] + direction, curr_point[1]) in self.extremities:
                         if not board[curr_point[0] + direction][curr_point[1]]:
@@ -294,12 +295,11 @@ class Board(object):
         # if line has left 1 or 2 sqs open adjacent to the endpoint, need to extend the line
         # if open sqs are not adjacent to an endpoint, need to remove sqs from the path
         while isinstance(valid, set):
-            self.extend_path(board, path, color)
-            prev_valid = valid
-            valid = self.validate_board(board, path)
-            if prev_valid == valid:
+            hole_filled = self.fill_holes(board, path, valid, color)
+            if not hole_filled:
                 needs_rollback = True
                 break
+            valid = self.validate_board(board, path)
 
         while (needs_rollback and len(path) > 3):
             self.rollback(board, path)
@@ -484,6 +484,7 @@ class Board(object):
 
 
     def extend_path(self, board, path, color):
+        """Randomly extends a path in any valid direction"""
         empty_neighbors = self.ortho_neighbors(path[0], board)
         # if the path can be extended at its beginning
         if empty_neighbors:
@@ -501,13 +502,32 @@ class Board(object):
                 board[sq[0]][sq[1]] = color + color
 
 
-    def fill_holes(self, board, path, cluster):
-        # TODO: will look through paths for adjacent endpoints that can be extended
-        # then call extend_path
-        # either this needs to work with the board as present, so that all paths
-        # are available to check, or if working with a temp board, needs to be
-        # passed the current line
-        pass
+    def fill_holes(self, board, path, cluster, color):
+        """Attempts to fill the holes created by drawing a specific line"""
+        while cluster:
+            # seeing is cluster is neighbor to beginning or end
+            beginning_neighbors = self.ortho_neighbors(path[0], board)
+            end_neighbors = self.ortho_neighbors(path[len(path) - 1], board)
+            beginning_overlap = cluster.intersection(beginning_neighbors)
+            end_overlap = cluster.intersection(end_neighbors)
+            if beginning_overlap:
+                cluster = cluster.difference(beginning_overlap)
+                board[path[0][0]][path[0][1]] = color
+                curr_point = beginning_overlap.pop()
+                board[curr_point[0]][curr_point[1]] = color * 2
+                path.insert(0, curr_point)
+            elif end_overlap:
+                cluster = cluster.difference(end_overlap)
+                end_pt = path[len(path) - 1]
+                board[end_pt[0]][end_pt[1]] = color
+                curr_point = end_overlap.pop()
+                board[curr_point[0]][curr_point[1]] = color * 2
+                path.append(curr_point)
+            else:
+                return False
+        return True 
+
+
 
 def import_minos():
     with open('minos.json') as minos_file:

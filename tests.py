@@ -127,4 +127,29 @@ def test_edge():
     print(path)
 
 
-test_edge()
+def test_fill():
+    foo = Board(5)
+
+    foo.game = [
+    [None, None, None, None, None],
+    [None, None, None, None, None],
+    ['g', 'g', 'g', 'gg', None],
+    ['gg', 'rr', 'r', None, None],
+    [None, None, 'r', 'r', 'rr']
+    ]
+
+    path = [(3, 0), (2, 0), (2, 1), (2, 2), (2, 3)]
+    cluster = set([(4, 0), (4, 1)])
+
+    hole_filled = foo.fill_holes(foo.game, path, cluster, 'g')
+    print(hole_filled)
+    print(" ")
+
+    for line in foo.game:
+        print(line)
+
+    print(' ')
+    print(path)
+
+
+test_fill()
