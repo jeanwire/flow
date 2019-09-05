@@ -262,10 +262,13 @@ class Board(object):
             empty_neighbors = self.ortho_neighbors(curr_point, board)
             # if there is only one neighbor, need to make sure line isn't doubling back
             if len(empty_neighbors) == 1:
-                curr_point = empty_neighbors.pop()
-                if len(self.filled_neighbors(curr_point, board, path)[1]) < 3:
+                point = empty_neighbors.pop()
+                if len(self.filled_neighbors(point, board, path)[1]) < 3:
+                    curr_point = point
                     path.append(curr_point)
                     board[curr_point[0]][curr_point[1]] = color
+                else:
+                    break
             # if there are multiple neighbors, need to determine which one
             # allows for "onion" behavior, which is a sq that contains filled neighbors
             elif empty_neighbors:
@@ -274,7 +277,7 @@ class Board(object):
                         curr_point = neighbor
                         path.append(curr_point)
                         board[curr_point[0]][curr_point[1]] = color
-                        break;
+                        break
             # if there are no neighbors, line must end
             else:
                 break
@@ -308,8 +311,9 @@ class Board(object):
                 needs_rollback = False
 
         # adding the line as it was randomly drawn may not be possible
-        if (not needs_rollback):
+        if (not needs_rollback and len(path) > 3):
             self.paths.append(path)
+            print(path)
             return board
 
         self.unused_colors.append(color)
@@ -525,8 +529,7 @@ class Board(object):
                 path.append(curr_point)
             else:
                 return False
-        return True 
-
+        return True
 
 
 def import_minos():
