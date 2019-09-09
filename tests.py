@@ -1,4 +1,5 @@
 from builder import Board
+from stack import Point, Stack
 
 
 def test_extend():
@@ -152,4 +153,15 @@ def test_fill():
     print(path)
 
 
-test_fill()
+def test_stack():
+
+    path = [(3, 1), (3, 2), (4, 2), (4, 3), (4, 4)]
+    foo = Stack(path)
+
+    # test pushing and popping
+    while(foo.curr_branch):
+        print(foo.curr_branch.x, ' ', foo.curr_branch.y)
+        foo.pop()
+
+
+test_stack()
