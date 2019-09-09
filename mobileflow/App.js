@@ -26,11 +26,14 @@ export default class Board extends Component {
       onStartShouldSetPanResponderCapture: (evt, gs) => true,
       onMoveShouldSetPanResponder: (evt, gs) => true,
       onMoveShouldSetPanResponderCapture: (evt, gs) => true,
-      onPanResponderGrant: (evt, gs) => this.handleFingerDown(evt, gs),
-      onPanResponderMove: (evt, gs) => this.handleFingerDrag(evt, gs),
-      // onPanResponderRelease -> yes, to change next color
+      onPanResponderGrant: (evt, gs) => {this.handleFingerDown(evt, gs)},
+      onPanResponderMove: (evt, gs) => {this.handleFingerDrag(evt, gs)},
+      onPanResponderRelease: (evt, gs) => {
+        this.setState({
+          nextColor: 'white'
+        })
+      },
       onPanResponderTerminationRequest: (evt, gs) => true,
-      // onPanResponderTerminate -> yes, to change next color
     })
   }
 
@@ -55,35 +58,53 @@ export default class Board extends Component {
   }
 
   handleFingerDown(evt, gs) {
+
     const { pageX, pageY } = evt.nativeEvent;
     const row = Math.floor((pageY - styles.container.margin) / styles.square.height);
     const col = Math.floor((pageX - styles.container.margin) / styles.square.width);
-    let squares = this.state.squares.slice(0);
-    // TODO: need to be able to roll back line
-    if (this.ends[row][col]) {
-      this.setState({
-        nextColor: this.state.squares[row][col]
-      })
-    }
-    if (this.state.squares[row][col] == 'white') {
-      // TODO: how should this behavior look?
-      squares[row][col]
+    if (row >=0 && row < this.ends.length && col >= 0 && col < this.ends.length) {
+      let squares = this.state.squares.slice(0);
+      // TODO: need to be able to roll back line
+      if (this.ends[row][col]) {
+        this.setState({
+          nextColor: this.state.squares[row][col]
+        })
+      }
+      else if (this.state.squares[row][col] != 'white') {
+        // TODO: how should this behavior look?
+        squares[row][col] = 'white';
+        this.setState({
+          squares: squares
+        })
+      }
     }
   }
 
   handleFingerDrag(evt, gs) {
-
+    const { pageX, pageY } = evt.nativeEvent;
+    const row = Math.floor((pageY - styles.container.margin) / styles.square.height);
+    const col = Math.floor((pageX - styles.container.margin) / styles.square.width);
+    if (row >=0 && row < this.ends.length && col >= 0 && col < this.ends.length) {
+      let squares = this.state.squares.slice(0);
+      if (!this.ends[row][col] && squares[row][col] != this.state.nextColor) {
+        squares[row][col] = this.state.nextColor;
+        this.setState({
+          squares: squares
+        })
+      }
+    }
   }
 
   buildBoard() {
     let board = [];
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < this.ends.length; i++) {
       let children = [];
-      for (let j = 0; j < 5; j++) {
+      for (let j = 0; j < this.ends.length; j++) {
         children.push(this.renderSquare(i, j));
       };
 
       board.push(<View
+                  key={i.toString()}
                   style={{
                     flex: 1,
                     flexDirection: 'row',
@@ -96,19 +117,18 @@ export default class Board extends Component {
 
   render() {
     return (
-      <View style={{...styles.container}}>
+      <View style={{...styles.container}} {...this.pr.panHandlers}>
         {this.buildBoard()}
       </View>
     )
   }
-
 }
 
 const styles = StyleSheet.create({
   container: {
+    // TODO: make the placement of these squares nicer and more flexible
     height: 250,
     margin: 30,
-    alignItems: 'center',
     justifyContent: 'center'
   },
   square: {
