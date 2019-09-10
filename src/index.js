@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import 'json-loader';
 import './index.css';
@@ -30,76 +30,54 @@ function Square(props) {
   }
 }
 
-class Board extends React.Component {
-  constructor(props) {
-    super(props);
-    // ends and colors initialized in GameImport
-    this.ends = props.ends;
-    this.state = {
-      squares: props.colors,
-      nextColor: 'white',
+function Board(props) {
+  const ends = props.ends;
+  const [boardSqs, setboardSqs] = useState(props.colors);
+  const [nextColor, setnextColor] = useState('white');
+
+  let board = [];
+
+  for (let i = 0; i < boardSqs.length; i++) {
+    let children = [];
+    for (let j = 0; j < boardSqs.length; j++) {
+      children.push(<Square
+                      key={(i.toString() + j.toString())}
+                      color={boardSqs[i][j]}
+                      ifEnd={ends[i][j]}
+                      onClick={() => handleClick(i, j, ends, boardSqs, setboardSqs, nextColor, setnextColor)}
+                    />);
     }
+    board.push(<div
+                className="board-row"
+                key={i.toString()}>
+                {children}
+               </div>)
   }
 
-  renderSquare(i, j) {
-    return (
-      <Square
-        key={(i.toString() + j.toString())}
-        color={this.state.squares[i][j]}
-        ifEnd={this.ends[i][j]}
-        onClick={() => this.handleClick(i, j)}
-      />
-    );
+  return (
+    <div>
+      {board}
+    </div>
+  );
+}
+
+
+function handleClick(i, j, ends, boardSqs, setboardSqs, nextColor, setnextColor) {
+  // select the end to choose the next color
+  if (ends[i][j]) {
+    setnextColor(boardSqs[i][j]);
   }
-
-  buildBoard() {
-    let board = [];
-
-    for (let i = 0; i < this.state.squares.length; i++) {
-      let children = [];
-      for (let j = 0; j < this.state.squares.length; j++) {
-        children.push(this.renderSquare(i, j));
-      }
-      board.push(<div
-                  className="board-row"
-                  key={i.toString()}>
-                  {children}
-                 </div>)
-    }
-    return board;
-  };
-
-  handleClick(i, j) {
-    // select the end to choose the next color
-    if (this.ends[i][j]) {
-      this.setState({
-        nextColor: this.state.squares[i][j]
-      })
-    }
-    else if (this.state.squares[i][j] !== 'white' &&
-             this.state.squares[i][j] === this.state.nextColor) {
-      let squares = this.state.squares.slice(0);
-      squares[i][j] = 'white';
-      this.setState({
-        squares: squares
-      })
-    }
-    // if square is white or is different than nextColor, set to nextColor
-    else {
-      let squares = this.state.squares.slice(0);
-      squares[i][j] = this.state.nextColor;
-      this.setState({
-        squares: squares
-      })
-    }
+  else if (boardSqs[i][j] !== 'white' &&
+           boardSqs[i][j] === nextColor) {
+    let squares = boardSqs.slice(0);
+    squares[i][j] = 'white';
+    setboardSqs(squares);
   }
-
-  render() {
-    return (
-      <div>
-        {this.buildBoard()}
-      </div>
-    );
+  // if square is white or is different than nextColor, set to nextColor
+  else {
+    let squares = boardSqs.slice(0);
+    squares[i][j] = nextColor;
+    setboardSqs(squares);
   }
 }
 
@@ -165,7 +143,7 @@ class GameImport extends React.Component {
           ends[i].push(false);
         }
       }
-    }
+    };
     this.setState({
       isLoaded: true,
       colors: colors,
