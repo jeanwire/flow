@@ -41,19 +41,23 @@ export default class Board extends Component {
     if (this.ends[i][j]) {
       return (
         <View
-        key={(i.toString() + j.toString())}
-        style={{
-          backgroundColor: this.state.squares[i][j],
-          ...styles.end}}/>
+          key={(i.toString() + j.toString())}
+          style={{
+            backgroundColor: this.state.squares[i][j],
+            ...styles.end
+          }}
+        />
       )
     };
 
     return (
       <View
-      key={(i.toString() + j.toString())}
-      style={{
-        backgroundColor: this.state.squares[i][j],
-        ...styles.square}}/>
+        key={(i.toString() + j.toString())}
+        style={{
+          backgroundColor: this.state.squares[i][j],
+          ...styles.square
+        }}
+      />
     )
   }
 
@@ -104,20 +108,23 @@ export default class Board extends Component {
       };
 
       board.push(<View
-                  key={i.toString()}
-                  style={{
-                    flex: 1,
-                    flexDirection: 'row',
-                  }}>
-                  {children}
-                </View>)
+                    key={i.toString()}
+                    style={{
+                      flexDirection: 'row',
+                    }}
+                  >
+                    {children}
+                  </View>)
     }
     return board;
   }
 
   render() {
     return (
-      <View style={{...styles.container}} {...this.pr.panHandlers}>
+      <View
+        style={{...styles.container}}
+        {...this.pr.panHandlers}
+      >
         {this.buildBoard()}
       </View>
     )
@@ -126,10 +133,10 @@ export default class Board extends Component {
 
 const styles = StyleSheet.create({
   container: {
-    // TODO: make the placement of these squares nicer and more flexible
-    height: 250,
+    // TODO: make the placement of these squares nicer
+    flex: 1,
     margin: 30,
-    justifyContent: 'center'
+    justifyContent: 'flex-start'
   },
   square: {
     height: 50,
