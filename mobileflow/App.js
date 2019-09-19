@@ -1,7 +1,28 @@
 import React, { Component } from 'react';
-import { StyleSheet, Text, View, PanResponder } from 'react-native';
+import { useState } from 'react';
+import 'babel-polyfill';
+import { StyleSheet, Text, View, PanResponder, Button } from 'react-native';
 
-export default class Board extends Component {
+
+export default function App() {
+  const [page, setPage] = useState('landingPage');
+
+  if (page == 'landingPage') {
+    return(
+      <Button
+        title="Click me!"
+        buttonStyle={{flex: 1,
+                      alignSelf: 'center'
+                    }}
+        onPress={() => setPage('game')}
+      />
+    )
+  }
+  return <Board/>;
+}
+
+
+class Board extends Component {
   constructor(props) {
     super(props);
     this.ends = [
@@ -41,12 +62,15 @@ export default class Board extends Component {
     if (this.ends[i][j]) {
       return (
         <View
-          key={(i.toString() + j.toString())}
-          style={{
-            backgroundColor: this.state.squares[i][j],
-            ...styles.end
-          }}
-        />
+          key={i.toString() + j.toString()}
+          style={{backgroundColor: 'white',
+                  ...styles.square}}>
+          <View
+            style={{
+              backgroundColor: this.state.squares[i][j],
+              ...styles.end
+            }}/>
+        </View>
       )
     };
 
@@ -142,11 +166,13 @@ const styles = StyleSheet.create({
     height: 50,
     width: 50,
     borderWidth: 1,
-    borderColor: 'black'
+    borderColor: 'black',
+    margin: -1,
   },
   end: {
-    height: 50,
-    width: 50,
-    borderRadius: 50/2
+    height: 48,
+    width: 48,
+    borderRadius: 48/2,
+    margin: -0.5
   }
 });
