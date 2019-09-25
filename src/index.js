@@ -36,6 +36,7 @@ function Board(props) {
   const [nextColor, setnextColor] = useState('white');
 
   let board = [];
+  let numNotEnds = 0;
 
   for (let i = 0; i < boardSqs.length; i++) {
     let children = [];
@@ -46,6 +47,7 @@ function Board(props) {
                       ifEnd={ends[i][j]}
                       onClick={() => handleClick(i, j, ends, boardSqs, setboardSqs, nextColor, setnextColor)}
                     />);
+      if (!ends[i][j]) numNotEnds++;
     }
     board.push(<div
                 className="board-row"
@@ -57,10 +59,32 @@ function Board(props) {
   return (
     <div>
       {board}
+      <GameInfo
+        numNotEnds={numNotEnds}
+        board={boardSqs}
+      />
     </div>
   );
 }
 
+function GameInfo(props) {
+  const numNotEnds = props.numNotEnds;
+  const board = props.board;
+
+  let numEmptySqs = 0;
+
+  for (let i = 0; i < board.length; i++) {
+    for (let j = 0; j < board.length; j++) {
+      if (board[i][j] === 'white') numEmptySqs++;
+    }
+  }
+
+  return (
+    <div>
+      {Math.floor((1 - numEmptySqs/numNotEnds) * 100) + '% Completed'}
+    </div>
+  )
+}
 
 function handleClick(i, j, ends, boardSqs, setboardSqs, nextColor, setnextColor) {
   // select the end to choose the next color
