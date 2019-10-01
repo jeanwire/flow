@@ -1,5 +1,5 @@
 from builder import Board
-from stack import Point, Stack
+from stack import Point, Tree
 
 
 def test_extend():
@@ -156,7 +156,7 @@ def test_fill():
 def test_stack():
 
     path = [(3, 1), (3, 2), (4, 2), (4, 3), (4, 4)]
-    foo = Stack(path)
+    foo = Tree(path)
 
     # test pushing and popping
     while(foo.curr_branch):
@@ -164,4 +164,40 @@ def test_stack():
         foo.pop()
 
 
-test_stack()
+def test_tree_paths():
+    path = [(3, 1), (3, 2), (4, 2), (4, 3), (4, 4)]
+    foo = Tree(path)
+
+    print('most recent path', foo.most_recent_path())
+
+    paths = [[(4, 1), (4, 0), (3, 0), (2, 0)],
+            [(2, 1), (2, 2), (2, 3), (3, 3), (3, 4)],
+            [(1, 0), (1, 1), (1, 2), (1, 3)],
+            [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (1, 4), (2, 4)]
+            ]
+
+    for path in paths:
+        # ok to put paths as same color because endpoints are used to mark
+        # delineation between different paths
+        endpoint = Point(path[0][0], path[0][1], 'r', True)
+        foo.push(endpoint)
+        foo.paths.append(endpoint)
+        # print(foo.curr_branch.previous)
+
+        for i in range(1, len(path) - 1):
+            foo.push(Point(path[i][0], path[i][1], 'r'))
+            # print(foo.curr_branch.previous)
+
+        i = len(path) - 1
+        foo.push(Point(path[i][0], path[i][1], 'r', True))
+        # print(foo.curr_branch.previous)
+
+        # print(foo.most_recent_path())
+
+
+    paths = foo.all_paths()
+
+    for path in paths:
+        print(path)
+
+test_tree_paths()

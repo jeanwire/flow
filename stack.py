@@ -10,6 +10,9 @@ class Point(object):
     def __eq__(self, p2):
         return self.x == p2.x and self.y == p2.y and self.end == p2.end
 
+    def __str__(self):
+        return f'({self.x}, {self.y})'
+
 class Tree(object):
     def __init__(self, line):
         self.root = Point(line[0][0], line[0][1], 'r', True)
@@ -20,6 +23,7 @@ class Tree(object):
             self.push(Point(line[i][0], line[i][1], 'r'))
         i = len(line) - 1
         self.push(Point(line[i][0], line[i][1], 'r', True))
+        self.paths.append(self.root)
 
 
     def push(self, point):
@@ -63,4 +67,30 @@ class Tree(object):
 
         path.append((node.x, node.y))
 
-        return path 
+        return path
+
+
+    def all_paths(self):
+        '''Returns an array of arrays containing all paths'''
+
+        paths = []
+        node = self.curr_branch
+        index = len(self.paths) - 1
+        while (node):
+            path = []
+            endpoint = self.paths[index]
+
+            while (node != endpoint):
+                path.append((node.x, node.y))
+                node = node.previous
+
+            # appending endpoint
+            path.append((node.x, node.y))
+            paths.append(path)
+
+            # setup for next loop iteration
+            node = node.previous
+            index -= 1
+
+
+        return paths
