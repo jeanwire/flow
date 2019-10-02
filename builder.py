@@ -11,6 +11,9 @@ def main():
 
     starter_board = Board(5, minos_dict)
 
+    for line in starter_board:
+        print(line)
+
     # when board is completed, write to file in json format
 
 
@@ -19,33 +22,36 @@ class Board(object):
         self.size = size
         self.game = [[None for _ in range(size)] for _ in range(size)]
         self.temp_game = copy.deepcopy(self.game)
-        self.paths = []
         self.complete = False
         self.unused_colors = ['m', 'p', 'c', 'o', 'y', 'b', 'g', 'r']
-        extremities = [(0, i) for i in range(size)]
-        extremities.extend([(i, 0) for i in range(size)])
-        extremities.extend([(i, size - 1) for i in range(size)])
-        extremities.extend([(size - 1, i) for i in range(size)])
+        # just here until adding the mino is changed to be stack-centric
+        self.paths = []
+        # extremities does not include corners
+        extremities = [(0, i) for i in range(1, size - 1)]
+        extremities.extend([(i, 0) for i in range(1, size - 1)])
+        extremities.extend([(i, size - 1) for i in range(1, size - 1)])
+        extremities.extend([(size - 1, i) for i in range(1, size - 1)])
         self.extremities = set(extremities)
         self.corners = set([(0, 0), (0, size - 1), (size - 1, 0), (size - 1, size - 1)])
 
-        inserted = False
-        while not inserted:
-            mino = copy.deepcopy(select_mino(minos_dict))
-
-            if (len(mino[0]) <= self.size):
-                inserted = self.insert(mino)
-
-        # take the mino path and put it on the stack
-        # will probably change this to a more stack-centric method at some other point
-        self.tree = stack.Tree(self.paths[0])
-        for i in range(0,5):
-            self.draw_line()
-            # self.validate_line()
-            # valid = self.validate_board()
-            # if not isinstance(valid, set)
-
-        print(self)
+        # inserted = False
+        # while not inserted:
+        #     mino = copy.deepcopy(select_mino(minos_dict))
+        #
+        #     if (len(mino[0]) <= self.size):
+        #         inserted = self.insert(mino)
+        #
+        # # take the mino path and put it on the stack
+        # # will probably change this to a more stack-centric method at some other point
+        # self.tree = stack.Tree(self.paths[0])
+        #
+        # for i in range(0,5):
+        #     self.draw_line()
+        #     # self.validate_line()
+        #     # valid = self.validate_board()
+        #     # if not isinstance(valid, set)
+        #
+        # print(self)
 
 
     def __str__(self):
@@ -58,6 +64,7 @@ class Board(object):
 
         color = self.unused_colors.pop()
         valid = self.mino_in_board(mino, row, col, color)
+        # if mino was placed in invalid spot, attempt to place it again
         if (isinstance(valid, set) and row + 1 < self.size - len(mino)):
             valid = self.mino_in_board(mino, row + 1, col, color)
         elif (isinstance(valid, set) and col + 1 < self.size - len(mino[0])):
@@ -69,7 +76,8 @@ class Board(object):
 
         if not isinstance(valid, set):
             self.game = copy.deepcopy(self.temp_game)
-        return valid
+            return True
+        return False
 
 
     def mino_in_board(self, mino, row, col, color):
@@ -129,10 +137,11 @@ class Board(object):
             print(self)
             # for debugging: will print the board then crash
             curr_point = pot_endpoints.pop()
-        path.append(curr_point)
+        point = Point(curr_point[0], curr_point[1], color, True)
+        tree.push(point)
         board[curr_point[0]][curr_point[1]] = color + color
         # if the endpoint is on the edge, it has a 1/4 chance of moving along the edge
-        if curr_point in self.extremities:
+        if curr_point in self.extremities or curr_point in self.corners:
             if random.random() < 0.25:
                 self.edge(path, color)
             else:
@@ -140,10 +149,7 @@ class Board(object):
         else:
             self.onion(path, color)
 
-        total_sqs_filled = 0
-        for path in self.paths:
-            total_sqs_filled += len(path)
-        if total_sqs_filled == self.size * self.size:
+        if len(tree.visited_sqs()) == self.size * self.size:
             self.complete = True
 
 
@@ -157,7 +163,7 @@ class Board(object):
 
         neighbors = self.ortho_neighbors(curr_point)
         for neighbor in neighbors:
-            if neighbor in self.extremities:
+            if neighbor in self.extremities or neighbor in self.corners:
                 if (neighbor[0] < curr_point[0]):
                     side = horizontal
                     direction = -1
@@ -172,23 +178,26 @@ class Board(object):
                     direction = +1
 
                 curr_point = neighbor
-                path.append(curr_point)
+                point = Point(curr_point[0], curr_point[1], color)
+                tree.push(point)
                 board[curr_point[0]][curr_point[1]] = color
                 break
 
         while (len(path) < 3 or random.randint(0, 9 - len(path))):
             # if the line can keep going in the same direction
-            if side == horizontal and (curr_point[0], curr_point[1] + direction) in self.extremities:
+            if side == horizontal and (curr_point[0], curr_point[1] + direction) in self.extremities or (curr_point[0], curr_point[1] + direction) in self.corners:
                 if not board[curr_point[0]][curr_point[1] + direction]:
                     curr_point = (curr_point[0], curr_point[1] + direction)
-                    path.append(curr_point)
+                    point = Point(curr_point[0], curr_point[1], color)
+                    tree.push(point)
                     board[curr_point[0]][curr_point[1]] = color
                 else:
                     break
-            elif side == vertical and (curr_point[0] + direction, curr_point[1]) in self.extremities:
+            elif side == vertical and (curr_point[0] + direction, curr_point[1]) in self.extremities or (curr_point[0] + direction, curr_point[1]) in self.corners:
                 if not board[curr_point[0] + direction][curr_point[1]]:
                     curr_point = (curr_point[0] + direction, curr_point[1])
-                    path.append(curr_point)
+                    point = Point(curr_point[0], curr_point[1], color)
+                    tree.push(point)
                     board[curr_point[0]][curr_point[1]] = color
                 else:
                     break
@@ -197,18 +206,20 @@ class Board(object):
                 if side == horizontal:
                     # direction is now vertical
                     side = not side
-                    if (curr_point[0] + direction, curr_point[1]) in self.extremities:
+                    if (curr_point[0] + direction, curr_point[1]) in self.extremities or (curr_point[0] + direction, curr_point[1]) in self.corners:
                         if not board[curr_point[0] + direction][curr_point[1]]:
                             curr_point = (curr_point[0] + direction, curr_point[1])
-                            path.append(curr_point)
+                            point = Point(curr_point[0], curr_point[1], color)
+                            tree.push(point)
                             board[curr_point[0]][curr_point[1]] = color
                         else:
                             break
-                    elif (curr_point[0] - direction, curr_point[1]) in self.extremities:
+                    elif (curr_point[0] - direction, curr_point[1]) in self.extremities or (curr_point[0] - direction, curr_point[1]) in self.corners:
                         if not board[curr_point[0] - direction][curr_point[1]]:
                             direction = - direction
                             curr_point = (curr_point[0] + direction, curr_point[1])
-                            path.append(curr_point)
+                            point = Point(curr_point[0], curr_point[1], color)
+                            tree.push(point)
                             board[curr_point[0]][curr_point[1]] = color
                         else:
                             break
@@ -216,24 +227,27 @@ class Board(object):
                         break
                 else:
                     side = not side
-                    if (curr_point[0], curr_point[1] + direction) in self.extremities:
+                    if (curr_point[0], curr_point[1] + direction) in self.extremities or (curr_point[0], curr_point[1] + direction) in self.corners:
                         if not board[curr_point[0]][curr_point[1] + direction]:
                             curr_point = (curr_point[0], curr_point[1] + direction)
-                            path.append(curr_point)
+                            point = Point(curr_point[0], curr_point[1], color)
+                            tree.push(point)
                             board[curr_point[0]][curr_point[1]] = color
                         else:
                             break
-                    elif (curr_point[0], curr_point[1] - direction) in self.extremities:
+                    elif (curr_point[0], curr_point[1] - direction) in self.extremities or (curr_point[0], curr_point[1] - direction) in self.corners:
                         if not board[curr_point[0]][curr_point[1] - direction]:
                             direction = - direction
                             curr_point = (curr_point[0], curr_point[1] + direction)
-                            path.append(curr_point)
+                            point = Point(curr_point[0], curr_point[1], color)
+                            tree.push(point)
                             board[curr_point[0]][curr_point[1]] = color
                         else:
                             break
                     else:
                         break
 
+        self.tree.curr_branch.end = True
         board[curr_point[0]][curr_point[1]] *= 2
         self.validate_line(path, color)
 
@@ -253,7 +267,8 @@ class Board(object):
                 point = empty_neighbors.pop()
                 if len(self.filled_neighbors(point, path)[1]) < 3:
                     curr_point = point
-                    path.append(curr_point)
+                    point_P = Point(curr_point[0], curr_point[1], color)
+                    tree.push(point_P)
                     board[curr_point[0]][curr_point[1]] = color
                 else:
                     break
@@ -263,13 +278,15 @@ class Board(object):
                 for neighbor in empty_neighbors:
                     if self.filled_neighbors(neighbor, path)[0]:
                         curr_point = neighbor
-                        path.append(curr_point)
+                        point_P = Point(curr_point[0], curr_point[1], color)
+                        tree.push(point_P)
                         board[curr_point[0]][curr_point[1]] = color
                         break
             # if there are no neighbors, line must end
             else:
                 break
 
+        self.tree.curr_branch.end = True
         board[curr_point[0]][curr_point[1]] = color + color
         self.validate_line(path, color)
         return board
@@ -307,18 +324,13 @@ class Board(object):
             self.unused_colors.append(color)
 
 
-    def validate_board(self, path):
+    def validate_board(self):
         """Determines whether a board contains any isolated groups of fewer
         than 3 squares. Returns true or a set of 1 or 2 isolated squares"""
         board = self.temp_game
         clusters = []
 
-        checked = set()
-        for old_path in self.paths:
-            for sq in old_path:
-                checked.add(sq)
-        for sq in path:
-            checked.add(sq)
+        checked = self.tree.visited_sqs()
 
         first_sq = None
 
@@ -394,6 +406,7 @@ class Board(object):
         argument separately from the other neighbors, which is used to prevent
         the lines doubling back upon themselves"""
         board = self.temp_game
+        #TODO: add methods to stack (?) for most recent path
         path = set()
         for sq in path_list:
             path.add(sq)
@@ -461,6 +474,7 @@ class Board(object):
         neighbor or are neighbors of the current endpoints"""
         one_neighbor = set()
         endpoints = set()
+        line_neighbor = set()
 
         for i in range(self.size):
             for j in range(self.size):
@@ -468,6 +482,10 @@ class Board(object):
                     neighbors = self.ortho_neighbors((i, j))
                     if len(neighbors) == 1:
                         one_neighbor.add((i, j))
+                    elif (i, j) not in self.corners and len(neighbors) == 2:
+                        line_neighbor.add((i, j))
+                    elif (i, j) not in self.extremities and len(neighbors) == 3:
+                        line_neighbor.add((i, j))
                 elif len(self.temp_game[i][j]) == 2:
                     endpoints.add((i, j))
 
@@ -478,10 +496,7 @@ class Board(object):
         if pot_endpoints:
             return pot_endpoints
         else:
-            for row in self.temp_game:
-                for col in row:
-                    if not col:
-                        return set((row, col))
+            return line_neighbor
 
 
     def extend_path(self, path, color):
@@ -491,6 +506,7 @@ class Board(object):
         if empty_neighbors:
             self.temp_game[path[0][0]][path[0][1]] = color
             sq = empty_neighbors.pop()
+            # TODO: add ability to insert at beginning of path
             path.insert(0, sq)
             self.temp_game[sq[0]][sq[1]] = color + color
         # if the path can be extended at its end
@@ -499,7 +515,8 @@ class Board(object):
             if empty_neighbors:
                 self.temp_game[path[len(path) - 1][0]][path[len(path) - 1][1]] = color
                 sq = empty_neighbors.pop()
-                path.append(sq)
+                point = Point(curr_point[0], curr_point[1], color)
+                tree.push(sq)
                 self.temp_game[sq[0]][sq[1]] = color + color
 
 
@@ -523,7 +540,7 @@ class Board(object):
                 self.temp_game[end_pt[0]][end_pt[1]] = color
                 curr_point = end_overlap.pop()
                 self.temp_game[curr_point[0]][curr_point[1]] = color * 2
-                path.append(curr_point)
+                tree.push(curr_point)
             else:
                 return False
         return True

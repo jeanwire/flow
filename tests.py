@@ -1,4 +1,4 @@
-from builder import Board
+from builder import Board, import_minos
 from stack import Point, Tree
 
 
@@ -182,7 +182,6 @@ def test_tree_paths():
         endpoint = Point(path[0][0], path[0][1], 'r', True)
         foo.push(endpoint)
         foo.paths.append(endpoint)
-        # print(foo.curr_branch.previous)
 
         for i in range(1, len(path) - 1):
             foo.push(Point(path[i][0], path[i][1], 'r'))
@@ -190,14 +189,42 @@ def test_tree_paths():
 
         i = len(path) - 1
         foo.push(Point(path[i][0], path[i][1], 'r', True))
-        # print(foo.curr_branch.previous)
-
-        # print(foo.most_recent_path())
-
 
     paths = foo.all_paths()
 
     for path in paths:
         print(path)
 
-test_tree_paths()
+
+def test_validate():
+    minos_dict = import_minos()
+    foo = Board(5, minos_dict)
+    mino = [(3, 1), (3, 2), (4, 2), (4, 3), (4, 4)]
+
+    foo.temp_game = [
+    [None, None, None, None, None],
+    [None, None, None, None, None],
+    [None, None, None, None, None],
+    [None, 'rr', 'r', None, None],
+    [None, None, 'r', 'r', 'rr']
+    ]
+
+    foo.tree = Tree(mino)
+
+    print(foo.validate_board())
+
+    mino = [(3, 0), (3, 1), (3, 2), (4, 2), (4, 3), (4, 4)]
+
+    foo.temp_game = [
+    [None, None, None, None, None],
+    [None, None, None, None, None],
+    [None, None, None, None, None],
+    ['rr', 'r', 'r', None, None],
+    [None, None, 'r', 'r', 'rr']
+    ]
+
+    foo.tree = Tree(mino)
+    print(foo.validate_board())
+
+
+test_validate()
