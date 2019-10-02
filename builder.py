@@ -327,10 +327,10 @@ class Board(object):
     def validate_board(self):
         """Determines whether a board contains any isolated groups of fewer
         than 3 squares. Returns true or a set of 1 or 2 isolated squares"""
-        board = self.temp_game
         clusters = []
 
-        checked = self.tree.visited_sqs()
+        visited_sqs = self.tree.visited_sqs()
+        checked = visited_sqs.copy()
 
         first_sq = None
 
@@ -342,7 +342,7 @@ class Board(object):
                     break;
 
             cluster = set({first_sq})
-            self.bfs(cluster.copy(), cluster)
+            self.bfs(cluster.copy(), cluster, visited_sqs)
             if cluster:
                 clusters.append(cluster)
                 for sq in cluster:
@@ -356,29 +356,28 @@ class Board(object):
 
         return True
 
-    def bfs(self, sqs, cluster):
-        board = self.temp_game
+    def bfs(self, sqs, cluster, visited_sqs):
         children = set()
         for sq in sqs:
-            if (sq[0] != 0 and not board[sq[0] - 1][sq[1]]):
+            if (sq[0] != 0 and (sq[0] - 1, sq[1]) not in visited_sqs):
                 if (sq[0] - 1, sq[1]) not in cluster:
                     children.add((sq[0] - 1, sq[1]))
                     cluster.add((sq[0] - 1, sq[1]))
-            if (sq[0] != self.size - 1 and not board[sq[0] + 1][sq[1]]):
+            if (sq[0] != self.size - 1 and (sq[0] + 1, sq[1]) not in visited_sqs):
                 if (sq[0] + 1, sq[1]) not in cluster:
                     children.add((sq[0] + 1, sq[1]))
                     cluster.add((sq[0] + 1, sq[1]))
-            if (sq[1] != 0 and not board[sq[0]][sq[1] - 1]):
+            if (sq[1] != 0 and (sq[0], sq[1] - 1) not in visited_sqs):
                 if (sq[0], sq[1] - 1) not in cluster:
                     children.add((sq[0], sq[1] - 1))
                     cluster.add((sq[0], sq[1] - 1))
-            if (sq[1] != self.size - 1 and not board[sq[0]][sq[1] + 1]):
+            if (sq[1] != self.size - 1 and (sq[0], sq[1] + 1) not in visited_sqs):
                 if (sq[0], sq[1] + 1) not in cluster:
                     children.add((sq[0], sq[1] + 1))
                     cluster.add((sq[0], sq[1] + 1))
 
         if (len(children)):
-            self.bfs(children, cluster)
+            self.bfs(children, cluster, visited_sqs)
 
 
     def ortho_neighbors(self, point):
@@ -462,11 +461,11 @@ class Board(object):
         return (filled_neighbors, own_neighbors)
 
 
-    def rollback(self, path):
-        last_sq = path.pop();
-        self.temp_game[last_sq[0]][last_sq[1]] = None;
-        last_sq = path[len(path) - 1]
-        self.temp_game[last_sq[0]][last_sq[1]] *= 2;
+    def rollback(self):
+        self.tree.pop()
+        point = stack.Point(self.tree.curr_branch.x, self.tree.curr_branch.y, self.tree.curr_branch.color, True)
+        self.tree.pop()
+        return self.tree.push(point)
 
 
     def find_pot_ends(self):
@@ -520,27 +519,28 @@ class Board(object):
                 self.temp_game[sq[0]][sq[1]] = color + color
 
 
-    def fill_holes(self, path, cluster, color):
-        """Attempts to fill the holes created by drawing a specific line"""
+    def fill_holes(self, cluster, color):
+        """Attempts to fill the holes created by drawing a the most recent line"""
+        path = self.tree.most_recent_path()
         while cluster:
-            # seeing is cluster is neighbor to beginning or end
+            # seeing is cluster is neighbor to beginning or end of line
+            # beginning and end are flipped relative to when they were added
             beginning_neighbors = self.ortho_neighbors(path[0])
             end_neighbors = self.ortho_neighbors(path[len(path) - 1])
+            # overlap can only be 1 or 0 squares
             beginning_overlap = cluster.intersection(beginning_neighbors)
             end_overlap = cluster.intersection(end_neighbors)
             if beginning_overlap:
-                cluster = cluster.difference(beginning_overlap)
-                self.temp_game[path[0][0]][path[0][1]] = color
-                curr_point = beginning_overlap.pop()
-                self.temp_game[curr_point[0]][curr_point[1]] = color * 2
-                path.insert(0, curr_point)
+                sq = beginning_overlap.pop()
+                pushed = self.tree.push(stack.Point(sq[0], sq[1], self.tree.curr_branch.color, True))
+                if pushed:
+                    self.tree.curr_branch.previous.end = False
+                return pushed
+                #TODO
             elif end_overlap:
-                cluster = cluster.difference(end_overlap)
-                end_pt = path[len(path) - 1]
-                self.temp_game[end_pt[0]][end_pt[1]] = color
-                curr_point = end_overlap.pop()
-                self.temp_game[curr_point[0]][curr_point[1]] = color * 2
-                tree.push(curr_point)
+                sq = end_overlap.pop()
+                pushed = self.tree.push_start_of_line(stack.Point(sq[0], sq[1], self.tree.curr_branch.color, True))
+                return pushed
             else:
                 return False
         return True

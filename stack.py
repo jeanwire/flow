@@ -11,7 +11,7 @@ class Point(object):
         return self.x == p2.x and self.y == p2.y and self.end == p2.end
 
     def __str__(self):
-        return f'({self.x}, {self.y})'
+        return f'({self.x}, {self.y}), End: {self.end}'
 
 class Tree(object):
     def __init__(self, line):
@@ -33,6 +33,28 @@ class Tree(object):
         self.curr_branch.next.append(point)
         point.previous = self.curr_branch
         self.curr_branch = point
+        return True
+
+
+    def push_start_of_line(self, point):
+        start = self.paths.pop()
+        # if endpoint has already been attempted, return false
+        if (start.previous):
+            for child in start.previous.next:
+                if child == point:
+                    self.paths.append(start)
+                    return False
+
+        # otherwise, insert new point into tree and return true
+        start.end = False
+        self.paths.append(point)
+        if (start.previous):
+            start.previous.next.append(point)
+        # if adding to the start of the mino, need to change the tree root 
+        else:
+            self.root = point
+        point.next.append(start)
+        start.previous = point
         return True
 
 

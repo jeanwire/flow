@@ -197,34 +197,68 @@ def test_tree_paths():
 
 
 def test_validate():
+    # should return valid
     minos_dict = import_minos()
     foo = Board(5, minos_dict)
     mino = [(3, 1), (3, 2), (4, 2), (4, 3), (4, 4)]
 
-    foo.temp_game = [
-    [None, None, None, None, None],
-    [None, None, None, None, None],
-    [None, None, None, None, None],
-    [None, 'rr', 'r', None, None],
-    [None, None, 'r', 'r', 'rr']
-    ]
+    # want to move away from using temp_game
+    # foo.temp_game = [
+    # [None, None, None, None, None],
+    # [None, None, None, None, None],
+    # [None, None, None, None, None],
+    # [None, 'rr', 'r', None, None],
+    # [None, None, 'r', 'r', 'rr']
+    # ]
 
     foo.tree = Tree(mino)
 
     print(foo.validate_board())
 
+    # should return invalid, cluster w/ (4,0) and (4,1)
     mino = [(3, 0), (3, 1), (3, 2), (4, 2), (4, 3), (4, 4)]
 
-    foo.temp_game = [
-    [None, None, None, None, None],
-    [None, None, None, None, None],
-    [None, None, None, None, None],
-    ['rr', 'r', 'r', None, None],
-    [None, None, 'r', 'r', 'rr']
-    ]
-
     foo.tree = Tree(mino)
     print(foo.validate_board())
 
 
-test_validate()
+def test_rollback():
+    minos_dict = import_minos()
+    foo = Board(5, minos_dict)
+    mino = [(3, 1), (3, 2), (4, 2), (4, 3), (4, 4)]
+
+    foo.tree = Tree(mino)
+
+    print("Testing rollback")
+    print(foo.rollback())
+
+    print(foo.tree.most_recent_path())
+    print(foo.tree.curr_branch)
+
+
+def test_extend():
+    minos_dict = import_minos()
+    foo = Board(5, minos_dict)
+    mino = [(3, 0), (3, 1), (3, 2), (4, 2), (4, 3), (4, 4)]
+    foo.tree = Tree(mino)
+    cluster = {(4,1), (4,0)}
+
+    # this will test adding at the 'end' of the line: should add (4,0)
+    print(foo.fill_holes(cluster, 'r'))
+    print(foo.tree.most_recent_path())
+    print(foo.tree.root)
+    print(foo.tree.root.next[0])
+
+    # this will test adding at the 'beginning' of the line: should add (4,0)
+    foo = Board(5, minos_dict)
+    mino = [(4, 4), (4, 3), (4, 2), (3, 2), (3, 1), (3, 0)]
+    foo.tree = Tree(mino)
+    cluster = {(4,1), (4,0)}
+    print(foo.fill_holes(cluster, 'r'))
+    print(foo.tree.most_recent_path())
+    print(foo.tree.curr_branch)
+    print(foo.tree.curr_branch.previous)
+
+
+
+test_extend()
