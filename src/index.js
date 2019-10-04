@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import 'json-loader';
 import './index.css';
@@ -19,11 +19,13 @@ function Square(props) {
       <button
         className="square"
         style={{background: "white"}}
-        onClick={props.onClick}>
+        onClick={props.onClick}
+      >
         <button
           className="circle"
           style={{background: props.color}}
           onClick={props.onClick}
+
         />
       </button>
     )
@@ -34,6 +36,11 @@ function Board(props) {
   const ends = props.ends;
   const [boardSqs, setboardSqs] = useState(props.colors);
   const [nextColor, setnextColor] = useState('white');
+  const [currSq, setCurrSq] = useState();
+
+  // useEffect(() => {
+  //   document.addEventListener('keydown', handleKeyDown)
+  // })
 
   let board = [];
   let numNotEnds = 0;
@@ -45,7 +52,7 @@ function Board(props) {
                       key={(i.toString() + j.toString())}
                       color={boardSqs[i][j]}
                       ifEnd={ends[i][j]}
-                      onClick={() => handleClick(i, j, ends, boardSqs, setboardSqs, nextColor, setnextColor)}
+                      onClick={() => handleClick(i, j)}
                     />);
       if (!ends[i][j]) numNotEnds++;
     }
@@ -54,6 +61,60 @@ function Board(props) {
                 key={i.toString()}>
                 {children}
                </div>)
+  }
+
+  // const handleKeyDown = (e) => {
+  //   console.log(e.keyCode);
+  //   // enter key
+  //   if (currSq) {
+  //     if (e.keyCode === 13) {
+  //       handleClick(currSq[0], currSq[1]);
+  //     }
+  //     // left arrow
+  //     else if (e.keyCode === 37) {
+  //       if (currSq[1] !== 0) {
+  //         setCurrSq([currSq[0], currSq[1] - 1]);
+  //       }
+  //     }
+  //     // right arrow
+  //     else if (e.keyCode === 39) {
+  //       if (currSq[1] !== boardSqs.length - 1) {
+  //         setCurrSq([currSq[0], currSq[1] + 1]);
+  //       }
+  //     }
+  //     // up arrow
+  //     else if (e.keyCode === 38) {
+  //       if (currSq[0] !== 0) {
+  //         setCurrSq([currSq[0] - 1, currSq[1]]);
+  //       }
+  //     }
+  //     // down arrow
+  //     else if (e.keyCode === 40) {
+  //       if (currSq[0] !== boardSqs.length - 1) {
+  //         setCurrSq([currSq[0] + 1, currSq[1]]);
+  //       }
+  //     }
+  //   }
+  // }
+
+  const handleClick = (i, j) => {
+    setCurrSq([i, j]);
+    // select the end to choose the next color
+    if (ends[i][j]) {
+      setnextColor(boardSqs[i][j]);
+    }
+    else if (boardSqs[i][j] !== 'white' &&
+             boardSqs[i][j] === nextColor) {
+      let squares = boardSqs.slice(0);
+      squares[i][j] = 'white';
+      setboardSqs(squares);
+    }
+    // if square is white or is different than nextColor, set to nextColor
+    else {
+      let squares = boardSqs.slice(0);
+      squares[i][j] = nextColor;
+      setboardSqs(squares);
+    }
   }
 
   return (
@@ -86,108 +147,85 @@ function GameInfo(props) {
   )
 }
 
-function handleClick(i, j, ends, boardSqs, setboardSqs, nextColor, setnextColor) {
-  // select the end to choose the next color
-  if (ends[i][j]) {
-    setnextColor(boardSqs[i][j]);
-  }
-  else if (boardSqs[i][j] !== 'white' &&
-           boardSqs[i][j] === nextColor) {
-    let squares = boardSqs.slice(0);
-    squares[i][j] = 'white';
-    setboardSqs(squares);
-  }
-  // if square is white or is different than nextColor, set to nextColor
-  else {
-    let squares = boardSqs.slice(0);
-    squares[i][j] = nextColor;
-    setboardSqs(squares);
-  }
-}
+function GameImport(props) {
 
-class GameImport extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      isLoaded: false,
-      colors: [],
-      ends: []
-    }
-  }
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [colors, setColors] = useState();
+  const [ends, setEnds] = useState();
 
-  componentDidMount() {
+  useEffect (() => {
     fetch("http://127.0.0.1:5000/play")
       .then(res => res.json())
-      .then(result => this.getBoard(result))
-  }
+      .then(result => getBoard(result));
+    // document.addEventListener('keyDown', handleKeyDown);
+  }, [])
 
-  getBoard(input) {
-    let colors = this.state.colors;
-    let ends = this.state.ends;
+  const getBoard = (input) => {
+    let colorArray = [];
+    let endArray = [];
     for (let i = 0; i < input.board.length; i++) {
       let thisRow = input.board[i];
       // allows for boards of different shapes and sizes
-      colors.push([]);
-      ends.push([]);
+      colorArray.push([]);
+      endArray.push([]);
       for (let j = 0; j < thisRow.length; j++) {
         if (thisRow[j].length > 1) {
-          ends[i].push(true);
+          endArray[i].push(true);
           switch (thisRow[j]) {
             case 'rr':
-              colors[i].push('red');
+              colorArray[i].push('red');
               break;
             case 'oo':
-              colors[i].push('orange');
+              colorArray[i].push('orange');
               break;
             case 'gg':
-              colors[i].push('green');
+              colorArray[i].push('green');
               break;
             case 'yy':
-              colors[i].push('yellow');
+              colorArray[i].push('yellow');
               break;
             case 'bb':
-              colors[i].push('blue');
+              colorArray[i].push('blue');
               break;
             case 'cc':
-              colors[i].push('cyan');
+              colorArray[i].push('cyan');
               break;
             case 'pp':
-              colors[i].push('purple');
+              colorArray[i].push('purple');
               break;
             case 'mm':
-              colors[i].push('maroon');
+              colorArray[i].push('maroon');
               break;
             default:
             // should not do this, means there is an error
-              colors[i].push('pink');
+              colorArray[i].push('pink');
           }
         }
         else {
-          colors[i].push('white');
-          ends[i].push(false);
+          colorArray[i].push('white');
+          endArray[i].push(false);
         }
       }
     };
-    this.setState({
-      isLoaded: true,
-      colors: colors,
-      ends: ends
-    })
+    setColors(colorArray);
+    setEnds(endArray);
+    setIsLoaded(true);
+
   }
 
-  render() {
-    if (!this.state.isLoaded) {
-      return (
-        <div className="game-info">"Loading"</div>
-      )
-    } else {
-      return (
-        <Board
-          colors={this.state.colors}
-          ends={this.state.ends}
-        />
-      )
-    }
+  if (!isLoaded) {
+    return (
+      <div className="game-info">"Loading"</div>
+    )
+  }
+  else {
+    console.log('colors: ' + colors);
+    return (
+      <Board
+        colors={colors}
+        ends={ends}
+      />
+    )
   }
 }
 
