@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 // this import is due to a bug in hooks in the current release
 import 'babel-polyfill';
 import { StyleSheet, Text, View, PanResponder, Button } from 'react-native';
+import { board } from './game3';
 
 
 export default function App() {
@@ -44,47 +45,89 @@ function LandingPage(props) {
 }
 
 function Board(props) {
-    const ends = [
-      [true, false, true, false, true],
-      [false, false, true, false, true],
-      [false, false, false, false, false],
-      [false, true, false, true, false],
-      [false, true, true, true, false]
-    ];
+  const [ends, setEnds] = useState([]);
 
-    const [colors, setColors] = useState([
-      ['red', 'white', 'green', 'white', 'yellow'],
-      ['white', 'white', 'blue', 'white', 'orange'],
-      ['white', 'white', 'white', 'white', 'white'],
-      ['white', 'green', 'white', 'yellow', 'white'],
-      ['white', 'red', 'blue', 'orange', 'white']
-    ]);
+  const [colors, setColors] = useState([]);
 
-    const [lines, setLines] = useState([
-      [[], [], [], [], []],
-      [[], [], [], [], []],
-      [[], [], [], [], []],
-      [[], [], [], [], []],
-      [[], [], [], [], []]
-    ]);
+  const [lines, setLines] = useState([
+    [[], [], [], [], []],
+    [[], [], [], [], []],
+    [[], [], [], [], []],
+    [[], [], [], [], []],
+    [[], [], [], [], []]
+  ]);
 
-    // drawnLines will be used to roll back lines
-    const [drawnLines, setdrawnLines] = useState([]);
-    const [nextColor, setNextColor] = useState('white');
-    const [prevSq, setPrevSq] = useState(null);
+  // drawnLines will be used to roll back lines
+  const [drawnLines, setdrawnLines] = useState([]);
+  const [nextColor, setNextColor] = useState('white');
+  const [prevSq, setPrevSq] = useState(null);
+  const [loaded, setLoaded] = useState(false);
 
-    const pr = PanResponder.create({
-      onStartShouldSetPanResponder: (evt, gs) => true,
-      onStartShouldSetPanResponderCapture: (evt, gs) => true,
-      onMoveShouldSetPanResponder: (evt, gs) => true,
-      onMoveShouldSetPanResponderCapture: (evt, gs) => true,
-      onPanResponderGrant: (evt, gs) => {handleFingerDown(evt, gs)},
-      onPanResponderMove: (evt, gs) => {handleFingerDrag(evt, gs)},
-      onPanResponderRelease: (evt, gs) => {
-        setNextColor('white')
-      },
-      onPanResponderTerminationRequest: (evt, gs) => true,
+  const pr = PanResponder.create({
+    onStartShouldSetPanResponder: (evt, gs) => true,
+    onStartShouldSetPanResponderCapture: (evt, gs) => true,
+    onMoveShouldSetPanResponder: (evt, gs) => true,
+    onMoveShouldSetPanResponderCapture: (evt, gs) => true,
+    onPanResponderGrant: (evt, gs) => {handleFingerDown(evt, gs)},
+    onPanResponderMove: (evt, gs) => {handleFingerDrag(evt, gs)},
+    onPanResponderRelease: (evt, gs) => {
+      setNextColor('white')
+    },
+    onPanResponderTerminationRequest: (evt, gs) => true,
+  });
+
+  useEffect(() => {
+    let boardEnds = [];
+    let boardColors = [];
+    // board is currently imported from local file 
+    board.forEach(function(row) {
+      let rowEnds = [];
+      let rowColors = [];
+      row.forEach(function(sq) {
+        if (sq.length > 1) {
+          rowEnds.push(true);
+          switch(sq) {
+            case 'rr':
+              rowColors.push('red');
+              break;
+            case 'oo':
+              rowColors.push('orange');
+              break;
+            case 'gg':
+              rowColors.push('green');
+              break;
+            case 'yy':
+              rowColors.push('yellow');
+              break;
+            case 'bb':
+              rowColors.push('blue');
+              break;
+            case 'cc':
+              rowColors.push('cyan');
+              break;
+            case 'pp':
+              rowColors.push('purple');
+              break;
+            case 'mm':
+              rowColors.push('maroon');
+              break;
+            default:
+            // should not do this, means there is an error
+              rowColors.push('pink');
+          }
+        }
+        else {
+          rowEnds.push(false);
+          rowColors.push('white');
+        };
+      })
+      boardEnds.push(rowEnds);
+      boardColors.push(rowColors);
     });
+    setEnds(boardEnds);
+    setColors(boardColors);
+    setLoaded(true);
+  }, []);
 
   renderSquare = (i, j) => {
     if (ends[i][j]) {
@@ -162,7 +205,6 @@ function Board(props) {
   }
 
   handleFingerDown = (evt, gs) => {
-
     const { pageX, pageY } = evt.nativeEvent;
     const row = Math.floor((pageY - styles.container.margin) / styles.square.height);
     const col = Math.floor((pageX - styles.container.margin) / styles.square.width);
@@ -245,13 +287,21 @@ function Board(props) {
     return board;
   }
 
+  if (loaded) {
+    return (
+      <View
+        style={{...styles.container}}
+        {...pr.panHandlers}
+      >
+        {buildBoard()}
+      </View>
+    )
+  }
+
   return (
-    <View
-      style={{...styles.container}}
-      {...pr.panHandlers}
-    >
-      {buildBoard()}
-    </View>
+    <Text>
+      Loading...
+    </Text>
   )
 }
 
