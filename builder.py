@@ -382,19 +382,19 @@ class Board(object):
 
     def ortho_neighbors(self, point):
         """Finds the empty neighbors that are orthogonal to the present square"""
-        board = self.temp_game
+        visited = self.tree.visited_sqs()
         neighbors = set()
         if point[0] != 0:
-            if not board[point[0] - 1][point[1]]:
+            if not (point[0] - 1, point[1]) in visited:
                 neighbors.add((point[0] - 1, point[1]))
         if (point[0] != self.size - 1):
-            if not board[point[0] + 1][point[1]]:
+            if not (point[0] + 1, point[1]) in visited:
                 neighbors.add((point[0] + 1, point[1]))
         if (point[1] != 0):
-            if not board[point[0]][point[1] - 1]:
+            if not (point[0], point[1] - 1) in visited:
                 neighbors.add((point[0], point[1] - 1))
         if (point[1] != self.size - 1):
-            if not board[point[0]][point[1] + 1]:
+            if not (point[0], point[1] + 1) in visited:
                 neighbors.add((point[0], point[1] + 1))
 
         return neighbors
@@ -498,51 +498,52 @@ class Board(object):
             return line_neighbor
 
 
-    def extend_path(self, path, color):
+    def extend_path(self, color):
         """Randomly extends a path in any valid direction"""
+        path = self.tree.most_recent_path()
+
         empty_neighbors = self.ortho_neighbors(path[0])
         # if the path can be extended at its beginning
         if empty_neighbors:
-            self.temp_game[path[0][0]][path[0][1]] = color
+            point = stack.Point(self.tree.curr_branch.x, self.tree.curr_branch.y, color)
+            self.tree.pop()
+            # TODO: what if this isn't push-able?
+            self.tree.push(point)
             sq = empty_neighbors.pop()
-            # TODO: add ability to insert at beginning of path
-            path.insert(0, sq)
-            self.temp_game[sq[0]][sq[1]] = color + color
+            point = stack.Point(sq[0], sq[1], color, True)
+            return self.tree.push(point)
         # if the path can be extended at its end
         else:
-            empty_neighbors = self.ortho_neighbors(path[len(path) - 1])
+            empty_neighbors = self.ortho_neighbors(path[-1])
             if empty_neighbors:
-                self.temp_game[path[len(path) - 1][0]][path[len(path) - 1][1]] = color
                 sq = empty_neighbors.pop()
-                point = Point(curr_point[0], curr_point[1], color)
-                tree.push(sq)
-                self.temp_game[sq[0]][sq[1]] = color + color
+                point = stack.Point(sq[0], sq[1], color, True)
+                return self.tree.push_start_of_line(point)
 
 
     def fill_holes(self, cluster, color):
         """Attempts to fill the holes created by drawing a the most recent line"""
         path = self.tree.most_recent_path()
-        while cluster:
-            # seeing is cluster is neighbor to beginning or end of line
-            # beginning and end are flipped relative to when they were added
-            beginning_neighbors = self.ortho_neighbors(path[0])
-            end_neighbors = self.ortho_neighbors(path[len(path) - 1])
-            # overlap can only be 1 or 0 squares
-            beginning_overlap = cluster.intersection(beginning_neighbors)
-            end_overlap = cluster.intersection(end_neighbors)
-            if beginning_overlap:
-                sq = beginning_overlap.pop()
-                pushed = self.tree.push(stack.Point(sq[0], sq[1], self.tree.curr_branch.color, True))
-                if pushed:
-                    self.tree.curr_branch.previous.end = False
-                return pushed
-                #TODO
-            elif end_overlap:
-                sq = end_overlap.pop()
-                pushed = self.tree.push_start_of_line(stack.Point(sq[0], sq[1], self.tree.curr_branch.color, True))
-                return pushed
-            else:
-                return False
+        # seeing is cluster is neighbor to beginning or end of line
+        # beginning and end are flipped relative to when they were added
+        beginning_neighbors = self.ortho_neighbors(path[0])
+        end_neighbors = self.ortho_neighbors(path[len(path) - 1])
+        # overlap can only be 1 or 0 squares
+        beginning_overlap = cluster.intersection(beginning_neighbors)
+        end_overlap = cluster.intersection(end_neighbors)
+        if beginning_overlap:
+            sq = beginning_overlap.pop()
+            pushed = self.tree.push(stack.Point(sq[0], sq[1], color, True))
+            if pushed:
+                self.tree.curr_branch.previous.end = False
+            return pushed
+            #TODO
+        elif end_overlap:
+            sq = end_overlap.pop()
+            pushed = self.tree.push_start_of_line(stack.Point(sq[0], sq[1], color, True))
+            return pushed
+        else:
+            return False
         return True
 
 

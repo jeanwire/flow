@@ -2,9 +2,8 @@ from builder import Board, import_minos
 from stack import Point, Tree
 
 
-def test_extend():
+def old_test_extend():
     foo = Board(5)
-
 
     foo.game = [
     [None, None, None, None, None],
@@ -236,7 +235,7 @@ def test_rollback():
     print(foo.tree.curr_branch)
 
 
-def test_extend():
+def test_fill_holes():
     minos_dict = import_minos()
     foo = Board(5, minos_dict)
     mino = [(3, 0), (3, 1), (3, 2), (4, 2), (4, 3), (4, 4)]
@@ -260,5 +259,21 @@ def test_extend():
     print(foo.tree.curr_branch.previous)
 
 
+def test_extend():
+    minos_dict = import_minos()
+    foo = Board(5, minos_dict)
+    # extend at end
+    mino = [(3, 0), (3, 1), (3, 2), (4, 2), (4, 3), (3, 3), (3, 4), (4, 4)]
+    foo.tree = Tree(mino)
+
+    print(foo.extend_path('r'))
+    print(foo.tree.most_recent_path())
+
+    # extend at beginning
+    mino = [(3, 0), (3, 1), (3, 2), (4, 2), (4, 3), (4, 4)]
+    foo.tree = Tree(mino)
+
+    print(foo.extend_path('r'))
+    print(foo.tree.most_recent_path())
 
 test_extend()
