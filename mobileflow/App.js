@@ -1,5 +1,5 @@
-import React, { Component } from 'react';
-import { useState } from 'react';
+import React from 'react';
+import { useState, useEffect } from 'react';
 // this import is due to a bug in hooks in the current release
 import 'babel-polyfill';
 import { StyleSheet, Text, View, PanResponder, Button } from 'react-native';
@@ -25,70 +25,76 @@ function LandingPage(props) {
       style={{flex: 1,
               alignItems: 'center',
               justifyContent: 'center'}}>
-      <Text>
+      <Text
+        style={{
+          fontSize: 30,
+          fontWeight: 'bold',
+          padding: 20
+        }}
+      >
       {"Let's do the thing!"}
       </Text>
       <Button
         title="Click me!"
+        color='purple'
         onPress={() => setPage('game')}
       />
     </View>
   )
 }
 
-class Board extends Component {
-  constructor(props) {
-    super(props);
-    this.ends = [
+function Board(props) {
+    const ends = [
       [true, false, true, false, true],
       [false, false, true, false, true],
       [false, false, false, false, false],
       [false, true, false, true, false],
       [false, true, true, true, false]
     ];
-    this.state = {
-      colors: [
-        ['red', 'white', 'green', 'white', 'yellow'],
-        ['white', 'white', 'blue', 'white', 'orange'],
-        ['white', 'white', 'white', 'white', 'white'],
-        ['white', 'green', 'white', 'yellow', 'white'],
-        ['white', 'red', 'blue', 'orange', 'white']
-      ],
-      lines: [
-        [[], [], [], [], []],
-        [[], [], [], [], []],
-        [[], [], [], [], []],
-        [[], [], [], [], []],
-        [[], [], [], [], []]
-      ],
-      nextColor: 'white',
-      prevSq: null
-    };
-    this.pr = PanResponder.create({
+
+    const [colors, setColors] = useState([
+      ['red', 'white', 'green', 'white', 'yellow'],
+      ['white', 'white', 'blue', 'white', 'orange'],
+      ['white', 'white', 'white', 'white', 'white'],
+      ['white', 'green', 'white', 'yellow', 'white'],
+      ['white', 'red', 'blue', 'orange', 'white']
+    ]);
+
+    const [lines, setLines] = useState([
+      [[], [], [], [], []],
+      [[], [], [], [], []],
+      [[], [], [], [], []],
+      [[], [], [], [], []],
+      [[], [], [], [], []]
+    ]);
+
+    // drawnLines will be used to roll back lines
+    const [drawnLines, setdrawnLines] = useState([]);
+    const [nextColor, setNextColor] = useState('white');
+    const [prevSq, setPrevSq] = useState(null);
+
+    const pr = PanResponder.create({
       onStartShouldSetPanResponder: (evt, gs) => true,
       onStartShouldSetPanResponderCapture: (evt, gs) => true,
       onMoveShouldSetPanResponder: (evt, gs) => true,
       onMoveShouldSetPanResponderCapture: (evt, gs) => true,
-      onPanResponderGrant: (evt, gs) => {this.handleFingerDown(evt, gs)},
-      onPanResponderMove: (evt, gs) => {this.handleFingerDrag(evt, gs)},
+      onPanResponderGrant: (evt, gs) => {handleFingerDown(evt, gs)},
+      onPanResponderMove: (evt, gs) => {handleFingerDrag(evt, gs)},
       onPanResponderRelease: (evt, gs) => {
-        this.setState({
-          nextColor: 'white'
-        })
+        setNextColor('white')
       },
       onPanResponderTerminationRequest: (evt, gs) => true,
-    })
-  }
+    });
 
-  renderSquare(i, j) {
-    if (this.ends[i][j]) {
+  renderSquare = (i, j) => {
+    if (ends[i][j]) {
       return (
         <View
           key={i.toString() + j.toString()}
           style={{...styles.square}}>
           <View
             style={{
-              backgroundColor: this.state.colors[i][j],
+              backgroundColor: colors[i][j],
               ...styles.end
             }}/>
         </View>
@@ -102,15 +108,14 @@ class Board extends Component {
     let rightOpacity = 0;
     let downOpacity = 0;
 
-    if (this.state.lines[i][j].length != 0) {
-      let lines = this.state.lines[i][j];
+    if (lines[i][j].length != 0) {
+      let sqLines = lines[i][j];
       // will always have center circle
       centerOpacity = 1;
-      if (lines.includes('u')) upOpacity = 1;
-      if (lines.includes('l')) leftOpacity = 1;
-      if (lines.includes('r')) rightOpacity = 1;
-      if (lines.includes('d')) downOpacity = 1;
-
+      if (sqLines.includes('u')) upOpacity = 1;
+      if (sqLines.includes('l')) leftOpacity = 1;
+      if (sqLines.includes('r')) rightOpacity = 1;
+      if (sqLines.includes('d')) downOpacity = 1;
     }
 
     return (
@@ -121,116 +126,111 @@ class Board extends Component {
             style={{
               ...styles.up,
               opacity: upOpacity,
-              backgroundColor: this.state.colors[i][j]
+              backgroundColor: colors[i][j]
             }}
           />
           <View
             style={{
               ...styles.left,
               opacity: leftOpacity,
-              backgroundColor: this.state.colors[i][j]
+              backgroundColor: colors[i][j]
             }}
           />
           <View
             style={{
               ...styles.center,
               opacity: centerOpacity,
-              backgroundColor: this.state.colors[i][j]
+              backgroundColor: colors[i][j]
             }}
           />
           <View
             style={{
               ...styles.right,
               opacity: rightOpacity,
-              backgroundColor: this.state.colors[i][j]
+              backgroundColor: colors[i][j]
             }}
           />
           <View
             style={{
               ...styles.down,
               opacity: downOpacity,
-              backgroundColor: this.state.colors[i][j]
+              backgroundColor: colors[i][j]
             }}
           />
       </View>
     )
   }
 
-  handleFingerDown(evt, gs) {
+  handleFingerDown = (evt, gs) => {
 
     const { pageX, pageY } = evt.nativeEvent;
     const row = Math.floor((pageY - styles.container.margin) / styles.square.height);
     const col = Math.floor((pageX - styles.container.margin) / styles.square.width);
-    if (row >=0 && row < this.ends.length && col >= 0 && col < this.ends.length) {
-      let colors = this.state.colors.slice(0);
-      // TODO: need to be able to roll back line
-      if (this.ends[row][col]) {
-        this.setState({
-          nextColor: this.state.colors[row][col],
-          prevSq: [row, col]
-        })
+    if (row >=0 && row < ends.length && col >= 0 && col < ends.length) {
+      let currentLine = [[row, col]];
+      let currDrawnLines = drawnLines;
+      currDrawnLines.push(currentLine);
+
+      if (ends[row][col]) {
+        setNextColor(colors[row][col]);
+        setPrevSq([row, col]);
+        setdrawnLines(currDrawnLines);
       }
-      else if (this.state.colors[row][col] != 'white') {
-        // TODO: how should this behavior look?
-        colors[row][col] = 'white';
-        this.setState({
-          colors: colors,
-          prevSq: (row, col)
-        })
+      else if (colors[row][col] != 'white') {
+        // TODO: how to roll back lines?
+        let currColors = colors.slice(0);
+        currColors[row][col] = 'white';
+        setdrawnLines(currDrawnLines);
+        setColors(currColors);
       }
     }
   }
 
-  handleFingerDrag(evt, gs) {
+  handleFingerDrag = (evt, gs) => {
     const { pageX, pageY } = evt.nativeEvent;
     const row = Math.floor((pageY - styles.container.margin) / styles.square.height);
     const col = Math.floor((pageX - styles.container.margin) / styles.square.width);
-    if (row >=0 && row < this.ends.length && col >= 0 && col < this.ends.length) {
-      let colors = this.state.colors.slice(0);
-      let lines = this.state.lines.slice(0);
-      if (!this.ends[row][col] && colors[row][col] != this.state.nextColor) {
-        colors[row][col] = this.state.nextColor;
-        this.setState({
-          colors: colors
-        })
+    if (row >=0 && row < ends.length && col >= 0 && col < ends.length) {
+      let currColors = colors.slice(0);
+      let currLines = lines.slice(0);
+      if (!ends[row][col] && colors[row][col] != nextColor) {
+        currColors[row][col] = nextColor;
+        setColors(currColors);
       }
-      if (row != this.state.prevSq[0] || col != this.state.prevSq[1]) {
-        let prevSq = this.state.prevSq;
+      if (row != prevSq[0] || col != prevSq[1]) {
         // for each new square added to the line, will be drawing either a horizontal or vertical line
         // line moving left
-        if (col < this.state.prevSq[1]) {
-          lines[prevSq[0]][prevSq[1]].push('l');
-          lines[row][col].push('r');
+        if (col < prevSq[1]) {
+          currLines[prevSq[0]][prevSq[1]].push('l');
+          currLines[row][col].push('r');
         }
         // line moving right
-        else if (col > this.state.prevSq[1]) {
-          lines[prevSq[0]][prevSq[1]].push('r');
-          lines[row][col].push('l');
+        else if (col > prevSq[1]) {
+          currLines[prevSq[0]][prevSq[1]].push('r');
+          currLines[row][col].push('l');
         }
         // line moving up
-        else if (row < this.state.prevSq[0]) {
-          lines[prevSq[0]][prevSq[1]].push('u');
-          lines[row][col].push('d');
+        else if (row < prevSq[0]) {
+          currLines[prevSq[0]][prevSq[1]].push('u');
+          currLines[row][col].push('d');
         }
         // line moving down
-        else if (row > this.state.prevSq[0]) {
-          lines[prevSq[0]][prevSq[1]].push('d');
-          lines[row][col].push('u');
+        else if (row > prevSq[0]) {
+          currLines[prevSq[0]][prevSq[1]].push('d');
+          currLines[row][col].push('u');
         }
-        this.setState({
-          prevSq: [row, col],
-          lines: lines
-        })
+        setPrevSq([row, col]);
+        setLines(currLines);
       }
     }
   }
 
-  buildBoard() {
+  buildBoard = () => {
     let board = [];
-    for (let i = 0; i < this.ends.length; i++) {
+    for (let i = 0; i < ends.length; i++) {
       let children = [];
-      for (let j = 0; j < this.ends.length; j++) {
-        children.push(this.renderSquare(i, j));
+      for (let j = 0; j < ends.length; j++) {
+        children.push(renderSquare(i, j));
       };
 
       board.push(<View
@@ -245,16 +245,14 @@ class Board extends Component {
     return board;
   }
 
-  render() {
-    return (
-      <View
-        style={{...styles.container}}
-        {...this.pr.panHandlers}
-      >
-        {this.buildBoard()}
-      </View>
-    )
-  }
+  return (
+    <View
+      style={{...styles.container}}
+      {...pr.panHandlers}
+    >
+      {buildBoard()}
+    </View>
+  )
 }
 
 const styles = StyleSheet.create({
