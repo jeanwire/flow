@@ -2,49 +2,98 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 // this import is due to a bug in hooks in the current release
 import 'babel-polyfill';
-import { StyleSheet, Text, View, PanResponder, Button } from 'react-native';
-import { board } from './game3';
+import { StyleSheet, Text, View, PanResponder, Button, FlatList } from 'react-native';
 
 
 export default function App() {
   const [page, setPage] = useState('landingPage');
+  const [gameNum, setGameNum] = useState(0);
 
-  if (page == 'landingPage') {
+  if (page === 'landingPage') {
     return <LandingPage
-              page={page}
               setPage={setPage}
             />
   }
-  return <Board/>;
+  else if (page === 'gameList') {
+    return <GameSelection
+              setPage={setPage}
+              setGameNum={setGameNum}
+            />
+  }
+  return <Board
+            gameNum={gameNum}
+          />;
 }
 
 function LandingPage(props) {
-  const page = props.page;
   const setPage = props.setPage;
   return(
     <View
-      style={{flex: 1,
-              alignItems: 'center',
-              justifyContent: 'center'}}>
+      style={{...styles.container}}>
       <Text
-        style={{
-          fontSize: 30,
-          fontWeight: 'bold',
-          padding: 20
-        }}
+        style={{...styles.text}}
       >
       {"Let's do the thing!"}
       </Text>
       <Button
         title="Click me!"
         color='purple'
-        onPress={() => setPage('game')}
+        onPress={() => setPage('gameList')}
+      />
+    </View>
+  )
+}
+
+function GameSelection(props) {
+  const setPage = props.setPage;
+  const setGameNum = props.setGameNum;
+
+  let data = [];
+  for (let i = 1; i <= boards.length; i++) {
+    let title = 'Game ' + i;
+    data.push({id: i.toString(), title: title});
+  }
+
+  return (
+    <FlatList
+      data={data}
+      renderItem={({ item }) => <Item
+                                  title={item.title}
+                                  id={item.id}
+                                  setGameNum={setGameNum}
+                                  setPage={setPage}
+                                />}
+      keyExtractor={item => item.id}
+    />
+  )
+}
+
+function Item(props) {
+  const title = props.title;
+  const id = props.id;
+  const setGameNum = props.setGameNum;
+  const setPage = props.setPage;
+
+  return (
+    <View
+      style={{
+        margin: 5
+      }}
+    >
+      <Button
+        title={title}
+        color='purple'
+        onPress={() => {
+          setGameNum(id);
+          setPage('game');
+        }}
       />
     </View>
   )
 }
 
 function Board(props) {
+  const gameNum = props.gameNum;
   const [ends, setEnds] = useState([]);
 
   const [colors, setColors] = useState([]);
@@ -76,10 +125,28 @@ function Board(props) {
     onPanResponderTerminationRequest: (evt, gs) => true,
   });
 
+  // board import
   useEffect(() => {
+    fetchBoard();
+  }, []);
+
+  const fetchBoard = async () => {
+    console.log('fetching');
+    let url = "127.0.0.1:5000/game/" + gameNum;
+    try {
+      let res = await fetch(url);
+      let resJSON = await res.json();
+      boardImport(resJSON);
+    }
+    catch (error) {
+      console.error(error);
+    }
+  }
+
+  const boardImport = (input) => {
     let boardEnds = [];
     let boardColors = [];
-    // board is currently imported from local file 
+
     board.forEach(function(row) {
       let rowEnds = [];
       let rowColors = [];
@@ -127,9 +194,9 @@ function Board(props) {
     setEnds(boardEnds);
     setColors(boardColors);
     setLoaded(true);
-  }, []);
+  }
 
-  renderSquare = (i, j) => {
+  const renderSquare = (i, j) => {
     if (ends[i][j]) {
       return (
         <View
@@ -202,12 +269,12 @@ function Board(props) {
           />
       </View>
     )
-  }
+  };
 
-  handleFingerDown = (evt, gs) => {
+  const handleFingerDown = (evt, gs) => {
     const { pageX, pageY } = evt.nativeEvent;
-    const row = Math.floor((pageY - styles.container.margin) / styles.square.height);
-    const col = Math.floor((pageX - styles.container.margin) / styles.square.width);
+    const row = Math.floor((pageY - styles.board.margin) / styles.square.height);
+    const col = Math.floor((pageX - styles.board.margin) / styles.square.width);
     if (row >=0 && row < ends.length && col >= 0 && col < ends.length) {
       let currentLine = [[row, col]];
       let currDrawnLines = drawnLines;
@@ -228,10 +295,10 @@ function Board(props) {
     }
   }
 
-  handleFingerDrag = (evt, gs) => {
+  const handleFingerDrag = (evt, gs) => {
     const { pageX, pageY } = evt.nativeEvent;
-    const row = Math.floor((pageY - styles.container.margin) / styles.square.height);
-    const col = Math.floor((pageX - styles.container.margin) / styles.square.width);
+    const row = Math.floor((pageY - styles.board.margin) / styles.square.height);
+    const col = Math.floor((pageX - styles.board.margin) / styles.square.width);
     if (row >=0 && row < ends.length && col >= 0 && col < ends.length) {
       let currColors = colors.slice(0);
       let currLines = lines.slice(0);
@@ -265,9 +332,9 @@ function Board(props) {
         setLines(currLines);
       }
     }
-  }
+  };
 
-  buildBoard = () => {
+  const buildBoard = () => {
     let board = [];
     for (let i = 0; i < ends.length; i++) {
       let children = [];
@@ -285,12 +352,12 @@ function Board(props) {
                   </View>)
     }
     return board;
-  }
+  };
 
   if (loaded) {
     return (
       <View
-        style={{...styles.container}}
+        style={{...styles.board}}
         {...pr.panHandlers}
       >
         {buildBoard()}
@@ -299,14 +366,29 @@ function Board(props) {
   }
 
   return (
-    <Text>
-      Loading...
-    </Text>
+    <View
+      style={{...styles.container}}
+    >
+      <Text
+        style={{...styles.text}}
+      >
+        Loading...
+      </Text>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  text: {
+    fontSize: 30,
+    fontWeight: 'bold'
+  },
+  board: {
     // TODO: make the placement of these squares nicer
     flex: 1,
     margin: 30,

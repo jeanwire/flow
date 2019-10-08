@@ -2,6 +2,7 @@ from flask import Flask, json, Response, redirect
 from flask_cors import CORS
 import os
 import random
+import json
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
@@ -35,11 +36,9 @@ def choose_game():
 
 @app.route('/game/<num>')
 def game(num):
-    file_name = 'game' + num +'.json';
+    game = json.dumps(Flow_Games.query.filter_by(id=num).first().game_board)
 
-    game = Flow_Games.query.filter_by(id=num).first().game_board
-
-    return Response(data, mimetype='application/json')
+    return Response(game, mimetype='application/json')
 
 
 if __name__ == "__main__":
