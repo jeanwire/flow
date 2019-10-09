@@ -4,6 +4,20 @@ import { useState, useEffect } from 'react';
 import 'babel-polyfill';
 import { StyleSheet, Text, View, PanResponder, Button, FlatList } from 'react-native';
 
+// need to reconfigure flask app - currently just serving boards locally
+boards = [];
+import {board as board1} from './game1.json';
+boards.push(board1);
+import {board as board2} from './game2.json';
+boards.push(board2);
+import {board as board3} from './game3.json';
+boards.push(board3);
+import {board as board4} from './game4.json';
+boards.push(board4);
+import {board as board5} from './game5.json';
+boards.push(board5);
+
+
 
 export default function App() {
   const [page, setPage] = useState('landingPage');
@@ -22,6 +36,7 @@ export default function App() {
   }
   return <Board
             gameNum={gameNum}
+            setPage={setPage}
           />;
 }
 
@@ -49,7 +64,7 @@ function GameSelection(props) {
   const setGameNum = props.setGameNum;
 
   let data = [];
-  for (let i = 1; i <= boards.length; i++) {
+  for (let i = 1; i <= 5; i++) {
     let title = 'Game ' + i;
     data.push({id: i.toString(), title: title});
   }
@@ -57,12 +72,23 @@ function GameSelection(props) {
   return (
     <FlatList
       data={data}
-      renderItem={({ item }) => <Item
-                                  title={item.title}
-                                  id={item.id}
-                                  setGameNum={setGameNum}
-                                  setPage={setPage}
-                                />}
+      ListHeaderComponent={
+        <Text
+          style={{
+            ...styles.text,
+            marginTop: 20
+          }}
+        >
+        Pick a game!
+        </Text>
+      }
+      renderItem={({ item }) =>
+        <Item
+          title={item.title}
+          id={item.id}
+          setGameNum={setGameNum}
+          setPage={setPage}
+        />}
       keyExtractor={item => item.id}
     />
   )
@@ -94,10 +120,9 @@ function Item(props) {
 
 function Board(props) {
   const gameNum = props.gameNum;
+  const setPage = props.setPage;
   const [ends, setEnds] = useState([]);
-
   const [colors, setColors] = useState([]);
-
   const [lines, setLines] = useState([
     [[], [], [], [], []],
     [[], [], [], [], []],
@@ -127,23 +152,24 @@ function Board(props) {
 
   // board import
   useEffect(() => {
-    fetchBoard();
+    boardImport(boards[Number(gameNum) - 1]);
+    // fetchBoard();
   }, []);
 
-  const fetchBoard = async () => {
-    console.log('fetching');
-    let url = "127.0.0.1:5000/game/" + gameNum;
-    try {
-      let res = await fetch(url);
-      let resJSON = await res.json();
-      boardImport(resJSON);
-    }
-    catch (error) {
-      console.error(error);
-    }
-  }
+  // need to reconfigure flask app
+  // const fetchBoard = async () => {
+  //   let url = "10.0.13.200:5000/game/" + gameNum;
+  //   try {
+  //     let res = await fetch(url);
+  //     let resJSON = await res.json();
+  //     boardImport(resJSON);
+  //   }
+  //   catch (error) {
+  //     console.error(error);
+  //   }
+  // }
 
-  const boardImport = (input) => {
+  const boardImport = (board) => {
     let boardEnds = [];
     let boardColors = [];
 
@@ -273,8 +299,8 @@ function Board(props) {
 
   const handleFingerDown = (evt, gs) => {
     const { pageX, pageY } = evt.nativeEvent;
-    const row = Math.floor((pageY - styles.board.margin) / styles.square.height);
-    const col = Math.floor((pageX - styles.board.margin) / styles.square.width);
+    const row = Math.floor((pageY - 2 * styles.board.margin) / styles.square.height);
+    const col = Math.floor((pageX - 2 * styles.board.margin) / styles.square.width);
     if (row >=0 && row < ends.length && col >= 0 && col < ends.length) {
       let currentLine = [[row, col]];
       let currDrawnLines = drawnLines;
@@ -297,8 +323,8 @@ function Board(props) {
 
   const handleFingerDrag = (evt, gs) => {
     const { pageX, pageY } = evt.nativeEvent;
-    const row = Math.floor((pageY - styles.board.margin) / styles.square.height);
-    const col = Math.floor((pageX - styles.board.margin) / styles.square.width);
+    const row = Math.floor((pageY - 2 * styles.board.margin) / styles.square.height);
+    const col = Math.floor((pageX - 2 * styles.board.margin) / styles.square.width);
     if (row >=0 && row < ends.length && col >= 0 && col < ends.length) {
       let currColors = colors.slice(0);
       let currLines = lines.slice(0);
@@ -308,6 +334,12 @@ function Board(props) {
       }
       if (row != prevSq[0] || col != prevSq[1]) {
         // for each new square added to the line, will be drawing either a horizontal or vertical line
+        if (currLines[prevSq[0]][prevSq[1]].length === 2) {
+          currLines[prevSq[0]][prevSq[1]].shift();
+        }
+        if (currLines[row][col].length === 2) {
+          currLines[row][col].shift();
+        }
         // line moving left
         if (col < prevSq[1]) {
           currLines[prevSq[0]][prevSq[1]].push('l');
@@ -358,9 +390,21 @@ function Board(props) {
     return (
       <View
         style={{...styles.board}}
-        {...pr.panHandlers}
       >
-        {buildBoard()}
+        <View
+          style={{...styles.board}}
+          {...pr.panHandlers}
+        >
+          {buildBoard()}
+        </View>
+        <View style={{margin: 50}}>
+          <Button
+            title="Select New Game"
+            color='purple'
+            onPress={() => {
+              setPage('gameList')}}
+          />
+        </View>
       </View>
     )
   }
