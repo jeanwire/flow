@@ -25,7 +25,6 @@ function Square(props) {
           className="circle"
           style={{background: props.color}}
           onClick={props.onClick}
-
         />
       </button>
     )
@@ -33,34 +32,93 @@ function Square(props) {
 }
 
 function Board(props) {
-  const ends = props.ends;
-  const [boardSqs, setboardSqs] = useState(props.colors);
+  const [loaded, setLoaded] = useState(false);
+  const [ends, setEnds] = useState([]);
+  const [boardSqs, setboardSqs] = useState([]);
   const [nextColor, setnextColor] = useState('white');
   const [currSq, setCurrSq] = useState();
-
-  // useEffect(() => {
-  //   document.addEventListener('keydown', handleKeyDown)
-  // })
-
-  let board = [];
   let numNotEnds = 0;
 
-  for (let i = 0; i < boardSqs.length; i++) {
-    let children = [];
-    for (let j = 0; j < boardSqs.length; j++) {
-      children.push(<Square
-                      key={(i.toString() + j.toString())}
-                      color={boardSqs[i][j]}
-                      ifEnd={ends[i][j]}
-                      onClick={() => handleClick(i, j)}
-                    />);
-      if (!ends[i][j]) numNotEnds++;
+  useEffect(() => {
+    // document.addEventListener('keydown', handleKeyDown);
+    fetch("http://127.0.0.1:5000/play")
+      .then(res => res.json())
+      .then(result => getBoard(result));
+  }, [])
+
+  const getBoard = (input) => {
+    let colorArray = [];
+    let endArray = [];
+    for (let i = 0; i < input.board.length; i++) {
+      let thisRow = input.board[i];
+      // allows for boards of different shapes and sizes
+      colorArray.push([]);
+      endArray.push([]);
+      for (let j = 0; j < thisRow.length; j++) {
+        if (thisRow[j].length > 1) {
+          endArray[i].push(true);
+          switch (thisRow[j]) {
+            case 'rr':
+              colorArray[i].push('red');
+              break;
+            case 'oo':
+              colorArray[i].push('orange');
+              break;
+            case 'gg':
+              colorArray[i].push('green');
+              break;
+            case 'yy':
+              colorArray[i].push('yellow');
+              break;
+            case 'bb':
+              colorArray[i].push('blue');
+              break;
+            case 'cc':
+              colorArray[i].push('cyan');
+              break;
+            case 'pp':
+              colorArray[i].push('purple');
+              break;
+            case 'mm':
+              colorArray[i].push('maroon');
+              break;
+            default:
+            // should not do this, means there is an error
+              colorArray[i].push('pink');
+          }
+        }
+        else {
+          colorArray[i].push('white');
+          endArray[i].push(false);
+        }
+      }
+    };
+    setboardSqs(colorArray);
+    setEnds(endArray);
+    setLoaded(true);
+  }
+
+  const buildBoard = () => {
+    let board = [];
+
+    for (let i = 0; i < boardSqs.length; i++) {
+      let children = [];
+      for (let j = 0; j < boardSqs.length; j++) {
+        children.push(<Square
+                        key={(i.toString() + j.toString())}
+                        color={boardSqs[i][j]}
+                        ifEnd={ends[i][j]}
+                        onClick={() => handleClick(i, j)}
+                      />);
+        if (!ends[i][j]) numNotEnds++;
+      }
+      board.push(<div
+                  className="board-row"
+                  key={i.toString()}>
+                  {children}
+                 </div>)
     }
-    board.push(<div
-                className="board-row"
-                key={i.toString()}>
-                {children}
-               </div>)
+    return board;
   }
 
   // const handleKeyDown = (e) => {
@@ -117,9 +175,17 @@ function Board(props) {
     }
   }
 
+  if (!loaded) {
+    return (
+      <div className="game-info">
+        Loading...
+      </div>
+    )
+  }
+
   return (
     <div>
-      {board}
+      {buildBoard()}
       <GameInfo
         numNotEnds={numNotEnds}
         board={boardSqs}
@@ -147,89 +213,7 @@ function GameInfo(props) {
   )
 }
 
-function GameImport(props) {
-
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [colors, setColors] = useState();
-  const [ends, setEnds] = useState();
-
-  useEffect (() => {
-    fetch("http://127.0.0.1:5000/play")
-      .then(res => res.json())
-      .then(result => getBoard(result));
-    // document.addEventListener('keyDown', handleKeyDown);
-  }, [])
-
-  const getBoard = (input) => {
-    let colorArray = [];
-    let endArray = [];
-    for (let i = 0; i < input.board.length; i++) {
-      let thisRow = input.board[i];
-      // allows for boards of different shapes and sizes
-      colorArray.push([]);
-      endArray.push([]);
-      for (let j = 0; j < thisRow.length; j++) {
-        if (thisRow[j].length > 1) {
-          endArray[i].push(true);
-          switch (thisRow[j]) {
-            case 'rr':
-              colorArray[i].push('red');
-              break;
-            case 'oo':
-              colorArray[i].push('orange');
-              break;
-            case 'gg':
-              colorArray[i].push('green');
-              break;
-            case 'yy':
-              colorArray[i].push('yellow');
-              break;
-            case 'bb':
-              colorArray[i].push('blue');
-              break;
-            case 'cc':
-              colorArray[i].push('cyan');
-              break;
-            case 'pp':
-              colorArray[i].push('purple');
-              break;
-            case 'mm':
-              colorArray[i].push('maroon');
-              break;
-            default:
-            // should not do this, means there is an error
-              colorArray[i].push('pink');
-          }
-        }
-        else {
-          colorArray[i].push('white');
-          endArray[i].push(false);
-        }
-      }
-    };
-    setColors(colorArray);
-    setEnds(endArray);
-    setIsLoaded(true);
-
-  }
-
-  if (!isLoaded) {
-    return (
-      <div className="game-info">"Loading"</div>
-    )
-  }
-  else {
-    console.log('colors: ' + colors);
-    return (
-      <Board
-        colors={colors}
-        ends={ends}
-      />
-    )
-  }
-}
-
 ReactDOM.render(
-  <GameImport />,
+  <Board />,
   document.getElementById('root')
 )
