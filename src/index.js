@@ -16,17 +16,16 @@ function Square(props) {
   }
   else {
     return (
-      <button
-        className="square"
+      <div
+        className="squarediv"
         style={{background: "white"}}
-        onClick={props.onClick}
       >
         <button
           className="circle"
           style={{background: props.color}}
           onClick={props.onClick}
         />
-      </button>
+      </div>
     )
   }
 }
@@ -36,11 +35,11 @@ function Board(props) {
   const [ends, setEnds] = useState([]);
   const [boardSqs, setboardSqs] = useState([]);
   const [nextColor, setnextColor] = useState('white');
-  const [currSq, setCurrSq] = useState();
+  const [currSq, setCurrSq] = useState([]);
   let numNotEnds = 0;
 
   useEffect(() => {
-    // document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown);
     fetch("http://127.0.0.1:5000/play")
       .then(res => res.json())
       .then(result => getBoard(result));
@@ -121,43 +120,51 @@ function Board(props) {
     return board;
   }
 
-  // const handleKeyDown = (e) => {
-  //   console.log(e.keyCode);
-  //   // enter key
-  //   if (currSq) {
-  //     if (e.keyCode === 13) {
-  //       handleClick(currSq[0], currSq[1]);
-  //     }
-  //     // left arrow
-  //     else if (e.keyCode === 37) {
-  //       if (currSq[1] !== 0) {
-  //         setCurrSq([currSq[0], currSq[1] - 1]);
-  //       }
-  //     }
-  //     // right arrow
-  //     else if (e.keyCode === 39) {
-  //       if (currSq[1] !== boardSqs.length - 1) {
-  //         setCurrSq([currSq[0], currSq[1] + 1]);
-  //       }
-  //     }
-  //     // up arrow
-  //     else if (e.keyCode === 38) {
-  //       if (currSq[0] !== 0) {
-  //         setCurrSq([currSq[0] - 1, currSq[1]]);
-  //       }
-  //     }
-  //     // down arrow
-  //     else if (e.keyCode === 40) {
-  //       if (currSq[0] !== boardSqs.length - 1) {
-  //         setCurrSq([currSq[0] + 1, currSq[1]]);
-  //       }
-  //     }
-  //   }
-  // }
+  const handleKeyDown = (e) => {
+    // enter key
+    if (currSq !== []) {
+      if (e.keyCode === 13) {
+        console.log('enter');
+        handleClick(currSq[0], currSq[1]);
+      }
+      // left arrow
+      else if (e.keyCode === 37) {
+        console.log('left');
+        if (currSq[1] !== 0) {
+          let temp = [currSq[0], currSq[1] - 1];
+          setCurrSq(temp);
+        }
+      }
+      // right arrow
+      else if (e.keyCode === 39) {
+
+        if (currSq[1] !== boardSqs.length - 1) {
+          let temp = [currSq[0], currSq[1] + 1];
+          setCurrSq(temp);
+        }
+      }
+      // up arrow
+      else if (e.keyCode === 38) {
+        if (currSq[0] !== 0) {
+          let temp = [currSq[0] - 1, currSq[1]];
+          setCurrSq(temp);
+        }
+      }
+      // down arrow
+      else if (e.keyCode === 40) {
+        if (currSq[0] !== boardSqs.length - 1) {
+          let temp = [currSq[0] + 1, currSq[1]];
+          setCurrSq(temp);
+        }
+      }
+    }
+  }
 
   const handleClick = (i, j) => {
-    setCurrSq([i, j]);
     // select the end to choose the next color
+    const temp = [i, j];
+    setCurrSq(temp);
+    console.log('curr sq: ', currSq);
     if (ends[i][j]) {
       setnextColor(boardSqs[i][j]);
     }
