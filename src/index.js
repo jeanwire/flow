@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import 'json-loader';
 import './index.css';
@@ -30,22 +30,26 @@ function Square(props) {
   }
 }
 
-function Board(props) {
-  const [loaded, setLoaded] = useState(false);
-  const [ends, setEnds] = useState([]);
-  const [boardSqs, setboardSqs] = useState([]);
+function Game(props) {
+  const ends = props.ends;
+  const setEnds = props.setEnds;
   const [nextColor, setnextColor] = useState('white');
-  const [currSq, setCurrSq] = useState([]);
-  let numNotEnds = 0;
+  const currSq = props.currSq;
+  const setCurrSq = props.setCurrSq;
+  const [boardDisplay, setBoardDisplay] = useState([]);
+  const response = props.response;
+  const setLoaded = props.setLoaded;
+  const loaded = props.loaded;
+  const boardSqs = props.boardSqs;
+  const setboardSqs = props.setboardSqs;
+  let numNotEnds = props.numNotEnds;
 
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    fetch("http://127.0.0.1:5000/play")
-      .then(res => res.json())
-      .then(result => getBoard(result));
-  }, [])
+    getBoard(response);
+  }, []);
 
   const getBoard = (input) => {
+    console.log('getting board');
     let colorArray = [];
     let endArray = [];
     for (let i = 0; i < input.board.length; i++) {
@@ -94,10 +98,12 @@ function Board(props) {
     };
     setboardSqs(colorArray);
     setEnds(endArray);
-    setLoaded(true);
+    buildBoard();
   }
 
-  const buildBoard = () => {
+  // memoizing the board since it will not change 
+  const buildBoard = useCallback(() => {
+    console.log('building board');
     let board = [];
 
     for (let i = 0; i < boardSqs.length; i++) {
@@ -107,7 +113,10 @@ function Board(props) {
                         key={(i.toString() + j.toString())}
                         color={boardSqs[i][j]}
                         ifEnd={ends[i][j]}
-                        onClick={() => handleClick(i, j)}
+                        onClick={() => {
+                          let temp = [i, j];
+                          setCurrSq(temp);
+                        }}
                       />);
         if (!ends[i][j]) numNotEnds++;
       }
@@ -117,54 +126,14 @@ function Board(props) {
                   {children}
                  </div>)
     }
-    return board;
-  }
+    setBoardDisplay(board);
+    setLoaded(true);
+  }, [])
 
-  const handleKeyDown = (e) => {
-    // enter key
-    if (currSq !== []) {
-      if (e.keyCode === 13) {
-        console.log('enter');
-        handleClick(currSq[0], currSq[1]);
-      }
-      // left arrow
-      else if (e.keyCode === 37) {
-        console.log('left');
-        if (currSq[1] !== 0) {
-          let temp = [currSq[0], currSq[1] - 1];
-          setCurrSq(temp);
-        }
-      }
-      // right arrow
-      else if (e.keyCode === 39) {
-
-        if (currSq[1] !== boardSqs.length - 1) {
-          let temp = [currSq[0], currSq[1] + 1];
-          setCurrSq(temp);
-        }
-      }
-      // up arrow
-      else if (e.keyCode === 38) {
-        if (currSq[0] !== 0) {
-          let temp = [currSq[0] - 1, currSq[1]];
-          setCurrSq(temp);
-        }
-      }
-      // down arrow
-      else if (e.keyCode === 40) {
-        if (currSq[0] !== boardSqs.length - 1) {
-          let temp = [currSq[0] + 1, currSq[1]];
-          setCurrSq(temp);
-        }
-      }
-    }
-  }
-
-  const handleClick = (i, j) => {
-    // select the end to choose the next color
-    const temp = [i, j];
-    setCurrSq(temp);
-    console.log('curr sq: ', currSq);
+  const handleClick = useCallback(() => {
+    console.log('next color: ', nextColor);
+    const i = currSq[0];
+    const j = currSq[1];
     if (ends[i][j]) {
       setnextColor(boardSqs[i][j]);
     }
@@ -180,9 +149,79 @@ function Board(props) {
       squares[i][j] = nextColor;
       setboardSqs(squares);
     }
-  }
+  }, [currSq]);
 
   if (!loaded) {
+    return(
+      <div className="game-info">
+        Loading...
+      </div>
+    )
+  }
+
+  return(
+    <div>
+      {boardDisplay}
+    </div>
+  )
+}
+
+function Board(props) {
+  const [loaded, setLoaded] = useState(false);
+  const [response, setResponse] = useState(null);
+  const [boardSqs, setboardSqs] = useState([]);
+  const [ends, setEnds] = useState([]);
+  const [currSq, setCurrSq] = useState([]);
+  let numNotEnds = 0;
+
+  useEffect(() => {
+    // document.addEventListener('keydown', handleKeyDown);
+    fetch("http://127.0.0.1:5000/play")
+      .then(res => res.json())
+      .then(result => setResponse(result));
+  }, [])
+
+  // const handleKeyDown = (e) => {
+  //   // enter key
+  //   if (currSq !== []) {
+  //     if (e.keyCode === 13) {
+  //       console.log('enter');
+  //       handleClick(currSq[0], currSq[1]);
+  //     }
+  //     // left arrow
+  //     else if (e.keyCode === 37) {
+  //       console.log('left');
+  //       if (currSq[1] !== 0) {
+  //         let temp = [currSq[0], currSq[1] - 1];
+  //         setCurrSq(temp);
+  //       }
+  //     }
+  //     // right arrow
+  //     else if (e.keyCode === 39) {
+  //
+  //       if (currSq[1] !== boardSqs.length - 1) {
+  //         let temp = [currSq[0], currSq[1] + 1];
+  //         setCurrSq(temp);
+  //       }
+  //     }
+  //     // up arrow
+  //     else if (e.keyCode === 38) {
+  //       if (currSq[0] !== 0) {
+  //         let temp = [currSq[0] - 1, currSq[1]];
+  //         setCurrSq(temp);
+  //       }
+  //     }
+  //     // down arrow
+  //     else if (e.keyCode === 40) {
+  //       if (currSq[0] !== boardSqs.length - 1) {
+  //         let temp = [currSq[0] + 1, currSq[1]];
+  //         setCurrSq(temp);
+  //       }
+  //     }
+  //   }
+  // }
+
+  if (!response) {
     return (
       <div className="game-info">
         Loading...
@@ -190,9 +229,42 @@ function Board(props) {
     )
   }
 
+  else if (response && !loaded) {
+    return (
+      <div>
+        <div className="game-info">
+          Loading...
+        </div>
+        <Game
+          setLoaded={setLoaded}
+          response={response}
+          numNotEnds={numNotEnds}
+          boardSqs={boardSqs}
+          setboardSqs={setboardSqs}
+          ends={ends}
+          setEnds={setEnds}
+          currSq={currSq}
+          setCurrSq={setCurrSq}
+          loaded={loaded}
+        />
+      </div>
+    )
+  }
+
   return (
     <div>
-      {buildBoard()}
+      <Game
+        setLoaded={setLoaded}
+        response={response}
+        numNotEnds={numNotEnds}
+        boardSqs={boardSqs}
+        setboardSqs={setboardSqs}
+        ends={ends}
+        setEnds={setEnds}
+        currSq={currSq}
+        setCurrSq={setCurrSq}
+        loaded={loaded}
+      />
       <GameInfo
         numNotEnds={numNotEnds}
         board={boardSqs}
