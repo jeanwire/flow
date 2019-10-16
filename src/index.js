@@ -43,7 +43,7 @@ function Game(props) {
   const loaded = props.loaded;
   const boardSqs = props.boardSqs;
   const setboardSqs = props.setboardSqs;
-  let numNotEnds = props.numNotEnds;
+  const setNumNotEnds = props.setNumNotEnds;
 
   useEffect(() => {
     getBoard(response);
@@ -104,6 +104,7 @@ function Game(props) {
   // memoizing the board
   useEffect(() => {
     let board = [];
+    let countNotEnds = 0;
 
     for (let i = 0; i < boardSqs.length; i++) {
       let children = [];
@@ -117,7 +118,7 @@ function Game(props) {
                           setCurrSq(temp);
                         }}
                       />);
-        if (!ends[i][j]) numNotEnds++;
+        if (!ends[i][j]) countNotEnds++;
       }
       board.push(<div
                   className="board-row"
@@ -126,6 +127,7 @@ function Game(props) {
                  </div>)
     }
     setBoardDisplay(board);
+    setNumNotEnds(countNotEnds);
     setLoaded(true);
   }, [boardSqs])
 
@@ -175,7 +177,7 @@ function Board(props) {
   const [boardSqs, setboardSqs] = useState([]);
   const [ends, setEnds] = useState([]);
   const [currSq, setCurrSq] = useState();
-  let numNotEnds = 0;
+  const [numNotEnds, setNumNotEnds] = useState(0);
 
   useEffect(() => {
     // document.addEventListener('keydown', handleKeyDown);
@@ -241,7 +243,7 @@ function Board(props) {
         <Game
           setLoaded={setLoaded}
           response={response}
-          numNotEnds={numNotEnds}
+          setNumNotEnds={setNumNotEnds}
           boardSqs={boardSqs}
           setboardSqs={setboardSqs}
           ends={ends}
@@ -259,7 +261,7 @@ function Board(props) {
       <Game
         setLoaded={setLoaded}
         response={response}
-        numNotEnds={numNotEnds}
+        setNumNotEnds={setNumNotEnds}
         boardSqs={boardSqs}
         setboardSqs={setboardSqs}
         ends={ends}
