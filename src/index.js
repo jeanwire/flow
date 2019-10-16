@@ -31,6 +31,7 @@ function Square(props) {
 }
 
 function Game(props) {
+  // having these as props prevents bugs due to re-renders
   const ends = props.ends;
   const setEnds = props.setEnds;
   const [nextColor, setnextColor] = useState('white');
@@ -98,12 +99,10 @@ function Game(props) {
     };
     setboardSqs(colorArray);
     setEnds(endArray);
-    buildBoard();
   }
 
-  // memoizing the board since it will not change 
-  const buildBoard = useCallback(() => {
-    console.log('building board');
+  // memoizing the board
+  useEffect(() => {
     let board = [];
 
     for (let i = 0; i < boardSqs.length; i++) {
@@ -128,26 +127,30 @@ function Game(props) {
     }
     setBoardDisplay(board);
     setLoaded(true);
-  }, [])
+  }, [boardSqs])
 
-  const handleClick = useCallback(() => {
-    console.log('next color: ', nextColor);
-    const i = currSq[0];
-    const j = currSq[1];
-    if (ends[i][j]) {
-      setnextColor(boardSqs[i][j]);
-    }
-    else if (boardSqs[i][j] !== 'white' &&
-             boardSqs[i][j] === nextColor) {
-      let squares = boardSqs.slice(0);
-      squares[i][j] = 'white';
-      setboardSqs(squares);
-    }
-    // if square is white or is different than nextColor, set to nextColor
-    else {
-      let squares = boardSqs.slice(0);
-      squares[i][j] = nextColor;
-      setboardSqs(squares);
+  // this hook handles clicks - changes the board when the currSq changes
+  useEffect(() => {
+    // to stop this code from running during initial mount
+    if (currSq) {
+      const i = currSq[0];
+      const j = currSq[1];
+      if (ends[i][j]) {
+        setnextColor(boardSqs[i][j]);
+      }
+      else if (boardSqs[i][j] !== 'white' &&
+               boardSqs[i][j] === nextColor) {
+        let squares = boardSqs.slice(0);
+        squares[i][j] = 'white';
+        setboardSqs(squares);
+      }
+      // if square is white or is different than nextColor, set to nextColor
+      else {
+        console.log(currSq);
+        let squares = boardSqs.slice(0);
+        squares[i][j] = nextColor;
+        setboardSqs(squares);
+      }
     }
   }, [currSq]);
 
@@ -171,7 +174,7 @@ function Board(props) {
   const [response, setResponse] = useState(null);
   const [boardSqs, setboardSqs] = useState([]);
   const [ends, setEnds] = useState([]);
-  const [currSq, setCurrSq] = useState([]);
+  const [currSq, setCurrSq] = useState();
   let numNotEnds = 0;
 
   useEffect(() => {
