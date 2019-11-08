@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import 'json-loader';
 import './index.css';
@@ -31,12 +31,9 @@ function Square(props) {
 }
 
 function Game(props) {
-  // having these as props prevents bugs due to re-renders
-  const ends = props.ends;
-  const setEnds = props.setEnds;
+  const [ends, setEnds] = useState([]);
   const [nextColor, setnextColor] = useState('white');
-  const currSq = props.currSq;
-  const setCurrSq = props.setCurrSq;
+  const [currSq, setCurrSq] = useState();
   const [boardDisplay, setBoardDisplay] = useState([]);
   const response = props.response;
   const setLoaded = props.setLoaded;
@@ -103,33 +100,36 @@ function Game(props) {
 
   // memoizing the board
   useEffect(() => {
-    let board = [];
-    let countNotEnds = 0;
+    // to prevent running during first render
+    if (ends.length != 0) {
+      let board = [];
+      let countNotEnds = 0;
 
-    for (let i = 0; i < boardSqs.length; i++) {
-      let children = [];
-      for (let j = 0; j < boardSqs.length; j++) {
-        children.push(<Square
-                        key={(i.toString() + j.toString())}
-                        color={boardSqs[i][j]}
-                        ifEnd={ends[i][j]}
-                        onClick={() => {
-                          let temp = [i, j];
-                          setCurrSq(temp);
-                        }}
-                      />);
-        if (!ends[i][j]) countNotEnds++;
+      for (let i = 0; i < boardSqs.length; i++) {
+        let children = [];
+        for (let j = 0; j < boardSqs.length; j++) {
+          children.push(<Square
+                          key={(i.toString() + j.toString())}
+                          color={boardSqs[i][j]}
+                          ifEnd={ends[i][j]}
+                          onClick={() => {
+                            let temp = [i, j];
+                            setCurrSq(temp);
+                          }}
+                        />);
+          if (!ends[i][j]) countNotEnds++;
+        }
+        board.push(<div
+                    className="board-row"
+                    key={i.toString()}>
+                    {children}
+                   </div>)
       }
-      board.push(<div
-                  className="board-row"
-                  key={i.toString()}>
-                  {children}
-                 </div>)
+      setBoardDisplay(board);
+      setNumNotEnds(countNotEnds);
+      setLoaded(true);
     }
-    setBoardDisplay(board);
-    setNumNotEnds(countNotEnds);
-    setLoaded(true);
-  }, [boardSqs])
+  }, [boardSqs, ends])
 
   // this hook handles clicks - changes the board when the currSq changes
   useEffect(() => {
@@ -194,7 +194,7 @@ function Board(props) {
   //       handleClick(currSq[0], currSq[1]);
   //     }
   //     // left arrow
-  //     else if (e.keyCode === 37) {
+  //     if (e.keyCode === 37) {
   //       console.log('left');
   //       if (currSq[1] !== 0) {
   //         let temp = [currSq[0], currSq[1] - 1];
@@ -246,10 +246,6 @@ function Board(props) {
           setNumNotEnds={setNumNotEnds}
           boardSqs={boardSqs}
           setboardSqs={setboardSqs}
-          ends={ends}
-          setEnds={setEnds}
-          currSq={currSq}
-          setCurrSq={setCurrSq}
           loaded={loaded}
         />
       </div>
@@ -264,10 +260,6 @@ function Board(props) {
         setNumNotEnds={setNumNotEnds}
         boardSqs={boardSqs}
         setboardSqs={setboardSqs}
-        ends={ends}
-        setEnds={setEnds}
-        currSq={currSq}
-        setCurrSq={setCurrSq}
         loaded={loaded}
       />
       <GameInfo
