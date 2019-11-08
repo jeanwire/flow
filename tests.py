@@ -155,11 +155,16 @@ def test_fill():
 def test_stack():
 
     path = [(3, 1), (3, 2), (4, 2), (4, 3), (4, 4)]
-    foo = Tree(path)
+    foo = Tree()
+
+    foo.push(Point(path[0][0], path[0][1], 'r', True))
+    for i in range(1, len(path) - 1):
+        foo.push(Point(path[i][0], path[i][1], 'r'))
+    foo.push(Point(path[-1][0], path[-1][1], 'r', True))
 
     # test pushing and popping
     while(foo.curr_branch):
-        print(foo.curr_branch.x, ' ', foo.curr_branch.y)
+        print(foo.curr_branch)
         foo.pop()
 
 
@@ -276,4 +281,4 @@ def test_extend():
     print(foo.extend_path('r'))
     print(foo.tree.most_recent_path())
 
-test_extend()
+test_stack()

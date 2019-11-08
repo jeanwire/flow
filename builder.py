@@ -21,7 +21,8 @@ class Board(object):
     def __init__(self, size, minos_dict):
         self.size = size
         self.game = [[None for _ in range(size)] for _ in range(size)]
-        self.temp_game = copy.deepcopy(self.game)
+        # just here until tree is fully integrated into builder
+        self.temp_game = [[None for _ in range(size)] for _ in range(size)]
         self.complete = False
         self.unused_colors = ['m', 'p', 'c', 'o', 'y', 'b', 'g', 'r']
         # just here until adding the mino is changed to be stack-centric
@@ -33,25 +34,22 @@ class Board(object):
         extremities.extend([(size - 1, i) for i in range(1, size - 1)])
         self.extremities = set(extremities)
         self.corners = set([(0, 0), (0, size - 1), (size - 1, 0), (size - 1, size - 1)])
+        self.tree = stack.Tree()
 
-        # inserted = False
-        # while not inserted:
-        #     mino = copy.deepcopy(select_mino(minos_dict))
-        #
-        #     if (len(mino[0]) <= self.size):
-        #         inserted = self.insert(mino)
-        #
-        # # take the mino path and put it on the stack
-        # # will probably change this to a more stack-centric method at some other point
-        # self.tree = stack.Tree(self.paths[0])
-        #
+        inserted = False
+        while not inserted:
+            mino = copy.deepcopy(select_mino(minos_dict))
+
+            if (len(mino[0]) <= self.size):
+                inserted = self.insert(mino)
+
         # for i in range(0,5):
         #     self.draw_line()
-        #     # self.validate_line()
-        #     # valid = self.validate_board()
-        #     # if not isinstance(valid, set)
-        #
-        # print(self)
+            # self.validate_line()
+            # valid = self.validate_board()
+            # if not isinstance(valid, set)
+
+        print(self)
 
 
     def __str__(self):
@@ -75,13 +73,12 @@ class Board(object):
             valid = self.mino_in_board(mino, row, col - 1, color)
 
         if not isinstance(valid, set):
-            self.game = copy.deepcopy(self.temp_game)
+            self.game = [[None for _ in range(size)] for _ in range(size)]
             return True
         return False
 
 
     def mino_in_board(self, mino, row, col, color):
-        self.temp_game = copy.deepcopy(self.game)
         temp_visited = set()
         endpoints = set()
 
@@ -90,7 +87,6 @@ class Board(object):
             mino_col = 0
             for j in range(col, col + len(mino[0])):
                 if (mino[mino_row][mino_col] != 'O'):
-                    self.temp_game[i][j] = re.sub('X', color, mino[mino_row][mino_col])
                     if (len(mino[mino_row][mino_col]) == 2):
                         endpoints.add((i, j))
                     else:
@@ -102,7 +98,10 @@ class Board(object):
 
         if (not isinstance(valid, set)):
             path = self.mino_to_line(temp_visited, endpoints)
-            self.paths.append(path)
+            self.tree.push(stack.Point(path[0][0], path[0][1], 'r', True))
+            for i in range(1, len(path) - 1):
+                self.tree.push(stack.Point(path[i][0], path[i][1], 'r'))
+            self.tree.push(stack.Point(path[-1][0], path[-1][1], 'r', True))
         return valid
 
 

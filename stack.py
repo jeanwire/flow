@@ -14,25 +14,25 @@ class Point(object):
         return f'({self.x}, {self.y}), End: {self.end}'
 
 class Tree(object):
-    def __init__(self, line):
-        self.root = Point(line[0][0], line[0][1], 'r', True)
-        self.curr_branch = self.root
+    def __init__(self):
+        self.root = None
+        self.curr_branch = None
         # paths is a collection of pointers to the first endpoints of the paths
         self.paths = []
-        for i in range(1, len(line) - 1):
-            self.push(Point(line[i][0], line[i][1], 'r'))
-        i = len(line) - 1
-        self.push(Point(line[i][0], line[i][1], 'r', True))
-        self.paths.append(self.root)
 
 
     def push(self, point):
-        for child in self.curr_branch.next:
-            if child == point:
-                return False
-        self.curr_branch.next.append(point)
-        point.previous = self.curr_branch
-        self.curr_branch = point
+        if self.root:
+            for child in self.curr_branch.next:
+                if child == point:
+                    return False
+            self.curr_branch.next.append(point)
+            point.previous = self.curr_branch
+            self.curr_branch = point
+            return True
+        self.root = point
+        self.curr_branch = self.root
+        self.paths.append(self.root)
         return True
 
 
@@ -50,7 +50,7 @@ class Tree(object):
         self.paths.append(point)
         if (start.previous):
             start.previous.next.append(point)
-        # if adding to the start of the mino, need to change the tree root 
+        # if adding to the start of the mino, need to change the tree root
         else:
             self.root = point
         point.next.append(start)
