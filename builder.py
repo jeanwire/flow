@@ -11,8 +11,7 @@ def main():
 
     starter_board = Board(5, minos_dict)
 
-    for line in starter_board:
-        print(line)
+    print(starter_board)
 
     # when board is completed, write to file in json format
 
@@ -31,7 +30,7 @@ class Board(object):
         edges.extend([(i, 0) for i in range(1, size - 1)])
         edges.extend([(i, size - 1) for i in range(1, size - 1)])
         edges.extend([(size - 1, i) for i in range(1, size - 1)])
-        self.edges = set(extremities)
+        self.edges = set(edges)
         self.corners = set([(0, 0), (0, size - 1), (size - 1, 0), (size - 1, size - 1)])
         self.extremities = self.edges.union(self.corners)
         self.tree = stack.Tree()
@@ -48,8 +47,6 @@ class Board(object):
             # self.validate_line()
             # valid = self.validate_board()
             # if not isinstance(valid, set)
-
-        print(self)
 
 
     def __str__(self):
@@ -73,8 +70,8 @@ class Board(object):
             valid = self.mino_in_board(mino, row, col - 1, color)
 
         if not isinstance(valid, set):
-            self.game = [[None for _ in range(size)] for _ in range(size)]
             return True
+        self.game = [[None for _ in range(self.size)] for _ in range(self.size)]
         return False
 
 
@@ -94,14 +91,18 @@ class Board(object):
                 mino_col += 1
             mino_row += 1
 
-        valid = self.validate_board(temp_visited.union(endpoints))
+        valid = self.validate_board()
 
         if (not isinstance(valid, set)):
             path = self.mino_to_line(temp_visited, endpoints)
+            print('path: ', path)
             self.tree.push(stack.Point(path[0][0], path[0][1], 'r', True))
+            self.game[path[0][0]][path[0][1]] = 'rr'
             for i in range(1, len(path) - 1):
                 self.tree.push(stack.Point(path[i][0], path[i][1], 'r'))
+                self.game[path[i][0]][path[i][1]] = 'r'
             self.tree.push(stack.Point(path[-1][0], path[-1][1], 'r', True))
+            self.game[path[-1][0]][path[-1][1]] = 'rr'
         return valid
 
 
