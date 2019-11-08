@@ -27,13 +27,13 @@ class Board(object):
         self.unused_colors = ['m', 'p', 'c', 'o', 'y', 'b', 'g', 'r']
         # just here until adding the mino is changed to be stack-centric
         self.paths = []
-        # extremities does not include corners
-        extremities = [(0, i) for i in range(1, size - 1)]
-        extremities.extend([(i, 0) for i in range(1, size - 1)])
-        extremities.extend([(i, size - 1) for i in range(1, size - 1)])
-        extremities.extend([(size - 1, i) for i in range(1, size - 1)])
-        self.extremities = set(extremities)
+        edges = [(0, i) for i in range(1, size - 1)]
+        edges.extend([(i, 0) for i in range(1, size - 1)])
+        edges.extend([(i, size - 1) for i in range(1, size - 1)])
+        edges.extend([(size - 1, i) for i in range(1, size - 1)])
+        self.edges = set(extremities)
         self.corners = set([(0, 0), (0, size - 1), (size - 1, 0), (size - 1, size - 1)])
+        self.extremities = self.edges.union(self.corners)
         self.tree = stack.Tree()
 
         inserted = False
@@ -140,7 +140,7 @@ class Board(object):
         tree.push(point)
         board[curr_point[0]][curr_point[1]] = color + color
         # if the endpoint is on the edge, it has a 1/4 chance of moving along the edge
-        if curr_point in self.extremities or curr_point in self.corners:
+        if curr_point in self.extremities:
             if random.random() < 0.25:
                 self.edge(path, color)
             else:
@@ -162,7 +162,7 @@ class Board(object):
 
         neighbors = self.ortho_neighbors(curr_point)
         for neighbor in neighbors:
-            if neighbor in self.extremities or neighbor in self.corners:
+            if neighbor in self.extremities:
                 if (neighbor[0] < curr_point[0]):
                     side = horizontal
                     direction = -1
@@ -184,7 +184,7 @@ class Board(object):
 
         while (len(path) < 3 or random.randint(0, 9 - len(path))):
             # if the line can keep going in the same direction
-            if side == horizontal and (curr_point[0], curr_point[1] + direction) in self.extremities or (curr_point[0], curr_point[1] + direction) in self.corners:
+            if side == horizontal and (curr_point[0], curr_point[1] + direction) in self.extremities:
                 if not board[curr_point[0]][curr_point[1] + direction]:
                     curr_point = (curr_point[0], curr_point[1] + direction)
                     point = Point(curr_point[0], curr_point[1], color)
@@ -192,7 +192,7 @@ class Board(object):
                     board[curr_point[0]][curr_point[1]] = color
                 else:
                     break
-            elif side == vertical and (curr_point[0] + direction, curr_point[1]) in self.extremities or (curr_point[0] + direction, curr_point[1]) in self.corners:
+            elif side == vertical and (curr_point[0] + direction, curr_point[1]) in self.extremities:
                 if not board[curr_point[0] + direction][curr_point[1]]:
                     curr_point = (curr_point[0] + direction, curr_point[1])
                     point = Point(curr_point[0], curr_point[1], color)
@@ -205,7 +205,7 @@ class Board(object):
                 if side == horizontal:
                     # direction is now vertical
                     side = not side
-                    if (curr_point[0] + direction, curr_point[1]) in self.extremities or (curr_point[0] + direction, curr_point[1]) in self.corners:
+                    if (curr_point[0] + direction, curr_point[1]) in self.extremities:
                         if not board[curr_point[0] + direction][curr_point[1]]:
                             curr_point = (curr_point[0] + direction, curr_point[1])
                             point = Point(curr_point[0], curr_point[1], color)
@@ -213,7 +213,7 @@ class Board(object):
                             board[curr_point[0]][curr_point[1]] = color
                         else:
                             break
-                    elif (curr_point[0] - direction, curr_point[1]) in self.extremities or (curr_point[0] - direction, curr_point[1]) in self.corners:
+                    elif (curr_point[0] - direction, curr_point[1]) in self.extremities:
                         if not board[curr_point[0] - direction][curr_point[1]]:
                             direction = - direction
                             curr_point = (curr_point[0] + direction, curr_point[1])
@@ -226,7 +226,7 @@ class Board(object):
                         break
                 else:
                     side = not side
-                    if (curr_point[0], curr_point[1] + direction) in self.extremities or (curr_point[0], curr_point[1] + direction) in self.corners:
+                    if (curr_point[0], curr_point[1] + direction) in self.extremities:
                         if not board[curr_point[0]][curr_point[1] + direction]:
                             curr_point = (curr_point[0], curr_point[1] + direction)
                             point = Point(curr_point[0], curr_point[1], color)
@@ -234,7 +234,7 @@ class Board(object):
                             board[curr_point[0]][curr_point[1]] = color
                         else:
                             break
-                    elif (curr_point[0], curr_point[1] - direction) in self.extremities or (curr_point[0], curr_point[1] - direction) in self.corners:
+                    elif (curr_point[0], curr_point[1] - direction) in self.extremities:
                         if not board[curr_point[0]][curr_point[1] - direction]:
                             direction = - direction
                             curr_point = (curr_point[0], curr_point[1] + direction)
@@ -485,7 +485,7 @@ class Board(object):
                         one_neighbor.add((i, j))
                     elif (i, j) not in self.corners and len(neighbors) == 2:
                         line_neighbor.add((i, j))
-                    elif (i, j) not in self.extremities and len(neighbors) == 3:
+                    elif (i, j) not in self.edges and len(neighbors) == 3:
                         line_neighbor.add((i, j))
                 # how to determine if sq is endpoint?
                 elif len(self.temp_game[i][j]) == 2:
