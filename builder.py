@@ -399,13 +399,14 @@ class Board(object):
 
         return neighbors
 
-    def filled_neighbors(self, point, path_list):
+    def filled_neighbors(self, point):
         """Finds the filled neighbors of the square, including orthogonal and
         diagonal neighbors. Counts the neighbors within the line passed as an
         argument separately from the other neighbors, which is used to prevent
         the lines doubling back upon themselves"""
         board = self.temp_game
-        #TODO: add methods to stack (?) for most recent path
+        path_list = self.tree.most_recent_path()
+        # searching in set is much faster than in list
         path = set()
         for sq in path_list:
             path.add(sq)
@@ -475,9 +476,11 @@ class Board(object):
         endpoints = set()
         line_neighbor = set()
 
+        visited_sqs = self.tree.visited_sqs()
+
         for i in range(self.size):
             for j in range(self.size):
-                if not self.temp_game[i][j]:
+                if not (i, j) in visited_sqs:
                     neighbors = self.ortho_neighbors((i, j))
                     if len(neighbors) == 1:
                         one_neighbor.add((i, j))
@@ -485,6 +488,7 @@ class Board(object):
                         line_neighbor.add((i, j))
                     elif (i, j) not in self.extremities and len(neighbors) == 3:
                         line_neighbor.add((i, j))
+                # how to determine if sq is endpoint?
                 elif len(self.temp_game[i][j]) == 2:
                     endpoints.add((i, j))
 
@@ -522,9 +526,9 @@ class Board(object):
 
 
     def fill_holes(self, cluster, color):
-        """Attempts to fill the holes created by drawing a the most recent line"""
+        """Attempts to fill the holes created by drawing the most recent line"""
         path = self.tree.most_recent_path()
-        # seeing is cluster is neighbor to beginning or end of line
+        # seeing if cluster is neighbor to beginning or end of line
         # beginning and end are flipped relative to when they were added
         beginning_neighbors = self.ortho_neighbors(path[0])
         end_neighbors = self.ortho_neighbors(path[len(path) - 1])
@@ -536,15 +540,12 @@ class Board(object):
             pushed = self.tree.push(stack.Point(sq[0], sq[1], color, True))
             if pushed:
                 self.tree.curr_branch.previous.end = False
-            return pushed
-            #TODO
-        elif end_overlap:
+                return pushed
+        if end_overlap:
             sq = end_overlap.pop()
             pushed = self.tree.push_start_of_line(stack.Point(sq[0], sq[1], color, True))
             return pushed
-        else:
-            return False
-        return True
+        return False
 
 
 def import_minos():
