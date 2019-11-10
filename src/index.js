@@ -16,16 +16,16 @@ function Square(props) {
   }
   else {
     return (
-      <div
+      <button
         className="squarediv"
         style={{background: "white"}}
       >
-        <button
+        <div 
           className="circle"
           style={{background: props.color}}
           onClick={props.onClick}
         />
-      </div>
+      </button>
     )
   }
 }
@@ -101,7 +101,7 @@ function Game(props) {
   // memoizing the board
   useEffect(() => {
     // to prevent running during first render
-    if (ends.length != 0) {
+    if (ends.length !== 0) {
       let board = [];
       let countNotEnds = 0;
 
@@ -175,8 +175,6 @@ function Board(props) {
   const [loaded, setLoaded] = useState(false);
   const [response, setResponse] = useState(null);
   const [boardSqs, setboardSqs] = useState([]);
-  const [ends, setEnds] = useState([]);
-  const [currSq, setCurrSq] = useState();
   const [numNotEnds, setNumNotEnds] = useState(0);
 
   useEffect(() => {

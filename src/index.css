@@ -9,8 +9,7 @@
   float: left;
   line-height: 100px;
   height: 100px;
-  margin-right: 0px;
-  margin-top: 0px;
+  margin: -1px;
   padding: 0;
   width: 100px;
   z-index: 1;
@@ -20,12 +19,11 @@
 .squarediv {
   border: 1px solid #000;
   float: left;
-  line-height: 98px;
-  height: 98px;
-  margin-right: 0px;
-  margin-top: 0px;
+  line-height: 100px;
+  height: 100px;
+  margin: -1px;
   padding: 0;
-  width: 98px;
+  width: 100px;
   z-index: 1;
   position: relative;
 }
